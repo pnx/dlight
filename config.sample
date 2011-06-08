@@ -1,0 +1,13 @@
+
+:dest1		/path/to/dest1
+:dest2          /path/to/dest2
+
+url1
+	regex1
+	regex2
+	regex3
+	regex4
+
+url2	dest2
+	regex5
+	regex6

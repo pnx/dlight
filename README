@@ -1,0 +1,59 @@
+
+	  Dlight - automatic feed downloader
+
+	--------------------------------------
+
+dlight is a program that checks items in rss feeds and download those
+items/links that are matched against a set of rules.
+What this does different than other programs of this type is that configuration
+of the program should be easy and flexible. Not forcing users to write
+and maintain large lists of raw regular expressions.
+
+The best way to use dlight is by using time-based scheduling like cron.
+--------------------------------------------------------
+# Make cron execute dlight every 15 minutes
+*/15 * * * * /path/to/dlight >> /path/to/logs/dlight.log
+--------------------------------------------------------
+
+
+dlight is divided into 3 major components: the dlight program,
+Configuration files and Compiler.
+
+	* dlight
+
+The actual program that checks feeds and download items.
+The configuration data is read from the compiled config file "~/.dlight/config".
+
+The program first fetches the rss file (target), walks through
+all items applying all filters associated whit the current target.
+And if one matches, that item will be downloaded to the destination associated
+with the target. it does this for all rss files (targets) in the config.
+
+	* Configuration Files
+
+A set of human-readable configuration files that the user should configure
+dlight through. This is where users defines their targets, destinations,
+filters and other type of information. (currently there is only one file
+with a similar structure that the compiled format use).
+
+	* Compiler
+
+An compiler is provided that compiles configuration files down to a
+binary config file used by dlight, one can think of this step as publish/update
+the configuration used by the program.
+
+
+This design is used for two main reasons.
+
+One, if you edit your configuration structure and dlight would be executed by
+for example cron. if dlight would read directly from those files, it is possible
+that the configuration files are not in a desired state and making dlight
+do some weird things.
+
+The second reason is that processing all those files everytime dlight is invoked
+can be quite slow, the compiled format is designed to provide fast I/O reads.
+Also by using a source -> compiler -> output design, errors can be caught
+in the configuration files when the user invokes the compiler.
+which is a more natural way of notify the user on such errors then to
+have dlight abort and log the error because the program is supposed to be
+executed in an automatic manner, the error will not be seen right away.
