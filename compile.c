@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include "env.h"
 #include "cconf.h"
+#include "filter.h"
 
 #define error(...) fprintf(stderr, "error: " __VA_ARGS__)
 
@@ -141,7 +142,7 @@ static int parse_alias() {
 static int parse_filter(struct target *target) {
 
 	char *value = parse_value();
-	if (!value)
+	if (!value || !filter_check_syntax(value))
 		return -1;
 	cconf_add_filter(target, strdup(value));
 	return 0;
