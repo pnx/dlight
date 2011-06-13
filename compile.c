@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include "env.h"
 #include "cconf.h"
+#include "lockfile.h"
 #include "filter.h"
 
 #define error(...) fprintf(stderr, "error: " __VA_ARGS__)
@@ -237,48 +238,30 @@ static int parse_config_file(const char *file) {
 	return -1;
 }
 
-static int commit_lock(const char *file) {
-
-	char target[4096];
-	int len;
-
-	len = strlen(file) - 5; /* .lock */
-
-	memcpy(target, file, len);
-	target[len] = '\0';
-
-	return rename(file, target);
-}
-
 int main(int argc, char **argv) {
 
-	int lockfd;
-	char lockfile[4096];
+	int lockfd, force = 0;
+	struct lockfile lock = LOCKFILE_INIT;
+	char filename[4096];
 
-	snprintf(lockfile, sizeof(lockfile), "%s/%s",
-		env_get_dir(), "config.lock");
+	snprintf(filename, sizeof(filename), "%s/%s",
+		env_get_dir(), "config");
 
 	/* Remove lockfile if forced */
 	if (argc > 1 && !strcmp(argv[1], "-f"))
-		unlink(lockfile);
+		force = 1;
 
-	lockfd = open(lockfile, O_WRONLY | O_CREAT | O_EXCL, 0600);
-	if (lockfd < 0) {
-		if (errno == EEXIST) {
-			error("config is locked\n");
-		} else {
-			perror("unable to create new configfile");
-		}
+	lockfd = hold_lock(&lock, filename, force);
+	if (lockfd < 0)
 		return 1;
-	}
 
 	if (parse_config_file("./config") < 0)
 		goto error;
 
 	if (!cconf_write(lockfd, &cconf) &&
-		!commit_lock(lockfile))
+		!commit_lock(&lock))
 		return 0;
 error:
-	unlink(lockfile);
+	release_lock(&lock);
 	return 1;
 }
