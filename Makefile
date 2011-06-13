@@ -10,7 +10,7 @@ all : $(PROGRAMS)
 install : $(PROGRAMS)
 	cp $^ $(HOME)/bin/
 
-dlight : dlight.o env.o http.o rss.o filter.o cconf.o dlhist.o
+dlight : dlight.o env.o http.o rss.o lockfile.o filter.o cconf.o dlhist.o
 dlight-compile : compile.o env.o lockfile.o filter.o cconf.o
 dlight-read-config : read-config.o env.o cconf.o
 

@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include "env.h"
+#include "lockfile.h"
 #include "dlhist.h"
 
 /*
@@ -37,7 +38,7 @@ struct hash_entry {
 
 #define he_empty(x) (!(x) || (x)->key == NULL)
 
-static int fd = -1;
+static struct lockfile lock = LOCKFILE_INIT;
 
 static struct hash_entry *table;
 static unsigned int table_size;
@@ -161,7 +162,7 @@ static void build_table(const char *buf, size_t len) {
 int dlhist_open() {
 
 	char filename[4096], *buf = NULL;
-	unsigned offset = 0;
+	int ret = -1, fd = -1, offset = 0;
 	struct stat st;
 	struct header *hdr;
 
@@ -169,7 +170,11 @@ int dlhist_open() {
 	snprintf(filename, sizeof(filename),
 		"%s/%s", env_get_dir(), STORAGE_FILE);
 
-	fd = open(filename, O_CREAT | O_RDWR, 0600);
+	/* try lockin the file */
+	if (hold_lock(&lock, filename, 0) < 0)
+		goto error;
+
+	fd = open(filename, O_CREAT | O_RDONLY, 0600);
 	if (fd < 0 || fstat(fd, &st) < 0) {
 		perror("dlhist_open");
 		goto error;
@@ -202,16 +207,15 @@ int dlhist_open() {
 
 	build_table(buf + offset, st.st_size - offset);
 
-	if (buf)
-		free(buf);
-	return 0;
+	ret = 0;
 error:
+	if (ret)
+		release_lock(&lock);
 	if (buf)
 		free(buf);
 	if (fd >= 0)
 		close(fd);
-	fd = -1;
-	return -1;
+	return ret;
 }
 
 int dlhist_lookup(const char *url) {
@@ -262,8 +266,9 @@ void dlhist_flush() {
 
 	int i;
 	struct header hdr;
+	int fd = lock.fd;
 
-	if (fd < 0)
+	if (table_size < 1)
 		return;
 
 	ftruncate(fd, 0);
@@ -292,8 +297,8 @@ void dlhist_flush() {
 		write(fd, entry->key, strlen(entry->key) + 1);
 	}
 
-	/* Make sure we flush to disk */
-	fsync(fd);
+	/* Flush it to the real file */
+	commit_lock(&lock);
 }
 
 void dlhist_close() {
@@ -302,9 +307,7 @@ void dlhist_close() {
 
 	dlhist_flush();
 
-	if (fd >= 0)
-		close(fd);
-	fd = -1;
+	release_lock(&lock);
 
 	if (table) {
 		for(i=0; i < table_size; i++) {
