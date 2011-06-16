@@ -141,7 +141,7 @@ static int parse_alias_definition() {
 
 static char* parse_alias() {
 
-	static char buf[4096];
+	static char buf[MAXNAME];
 	int c, len = 0, trailing_space = 0;
 
 	for(;;) {
