@@ -107,8 +107,7 @@ static char* parse_value() {
 	return value;
 }
 
-
-static int parse_alias() {
+static int parse_alias_definition() {
 
 	static char name[MAXNAME];
 	const char *value;
@@ -140,6 +139,36 @@ static int parse_alias() {
 	return 0;
 }
 
+static char* parse_alias() {
+
+	static char buf[4096];
+	int c, len = 0, trailing_space = 0;
+
+	for(;;) {
+		c = get_next_ch();
+		if (c == EOF || c == '\n')
+			break;
+		if (isspace(c)) {
+			if (len)
+				trailing_space = 1;
+			continue;
+		}
+		if (!isalias(c)) {
+			error("Invalid character '%c' in alias\n", c);
+			return NULL;
+		}
+		if (trailing_space) {
+			error("Space not allowed in alias\n");
+			return NULL;
+		}
+		if (len >= sizeof(buf))
+			return NULL;
+		buf[len++] = tolower(c);
+	}
+	buf[len] = '\0';
+	return buf;
+}
+
 static int parse_filter(struct target *target) {
 
 	char *value = parse_value();
@@ -151,8 +180,8 @@ static int parse_filter(struct target *target) {
 
 static int parse_target(struct target *target) {
 
-	char src[4096], alias[4096];
-	int c, len = 0, trailing_space = 0;
+	char src[4096], *alias;
+	int c, len = 0;
 
 	for(;;) {
 		c = get_next_ch();
@@ -165,31 +194,10 @@ static int parse_target(struct target *target) {
 	src[len] = '\0';
 
 	/* next, get alias */
-	len = 0;
-	for(;;) {
-		c = get_next_ch();
-		if (c == EOF || c == '\n')
-			break;
-		if (isspace(c)) {
-			if (len)
-				trailing_space = 1;
-			continue;
-		}
-		if (!isalias(c)) {
-			error("Invalid character '%c' in alias\n", c);
-			return -1;
-		}
-		if (trailing_space) {
-			error("Space not allowed in alias\n");
-			return -1;
-		}
-		if (len >= sizeof(alias))
-			return -1;
-		alias[len++] = tolower(c);
-	}
-	alias[len] = '\0';
-
-	if (!len && !dest_table_nr) {
+	alias = parse_alias();
+	if (!alias)
+		return -1;
+	if (!alias[0] && !dest_table_nr) {
 		error("No destination found for target '%s'\n", src);
 		return -1;
 	}
@@ -216,7 +224,7 @@ static int parse_config_file(const char *file) {
 		if (c == EOF)
 			return 0;
 		if (c == ':') {
-			if (parse_alias() < 0)
+			if (parse_alias_definition() < 0)
 				break;
 			continue;
 		}
