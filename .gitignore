@@ -1,2 +1,5 @@
 .*
 *.o
+dlight
+dlight-*
+config
