@@ -13,22 +13,29 @@
 
 static void process_items(rss_t rss, struct target *t) {
 
+	int i;
 	struct rss_item item;
 
 	while(rss_walk_next(rss, &item)) {
 
-		if (!filter_match_list(t->filter, t->nr, item.title)
-			|| dlhist_lookup(item.link)) {
+		if (dlhist_lookup(item.link))
 			continue;
-		}
 
-		if (http_download_file(item.link, t->dest) < 0 &&
-			errno != EEXIST) {
-			error("download failed: %s\n", strerror(errno));
-			continue;
-		}
+		for(i=0; i < t->nr; i++) {
+			struct filter *filter = &t->filter[i];
 
-		dlhist_update(item.link);
+			if (!filter_match(filter->pattern, item.title))
+				continue;
+
+			if (http_download_file(item.link, filter->dest) < 0 &&
+				errno != EEXIST) {
+				printf("download failed: %s\n",
+					strerror(errno));
+				continue;
+			}
+
+			dlhist_update(item.link);
+		}
 	}
 }
 

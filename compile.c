@@ -44,6 +44,9 @@ static struct dest_table {
 	char *value;
 } *dest_table;
 
+/* index to the default destination */
+static unsigned default_dest;
+
 static struct cconf cconf;
 static int config_lineno = 1;
 static FILE *config_fd;
@@ -69,7 +72,7 @@ static char* fetch_destination(char *key) {
 
 	int index = find_destination(key);
 	if (index < 0)
-		index = 0;
+		index = default_dest;
 	return dest_table[index].value;
 }
 
@@ -189,10 +192,43 @@ static char* parse_alias() {
 
 static int parse_filter(struct target *target) {
 
-	char *value = parse_value();
-	if (!value || !filter_check_syntax(value))
+	struct filter filter;
+	char pattern[1024];
+	char *alias = NULL;
+	int c, len = 0;
+
+	for(;;) {
+		c = get_next_ch();
+		if (c == EOF || isspace(c))
+			break;
+		if (c == '\\') {
+			c = get_next_ch();
+			if (c != ' ') {
+				ungetc(c, config_fd);
+				c = '\\';
+			}
+		}
+		if (len >= sizeof(pattern))
+			return -1;
+		pattern[len++] = c;
+	}
+	pattern[len] = '\0';
+
+	if (!pattern[0] || !filter_check_syntax(pattern))
 		return -1;
-	cconf_add_filter(target, strdup(value));
+
+	if (c == ' ' || c == '\t') {
+		alias = parse_alias();
+		if (!alias)
+			return -1;
+	}
+
+	filter.pattern = strdup(pattern);
+	if (!alias || !alias[0])
+		alias = dest_table[default_dest].key;
+	filter.dest = strdup(fetch_destination(alias));
+
+	cconf_add_filter(target, &filter);
 	return 0;
 }
 
@@ -221,8 +257,7 @@ static int parse_target(struct target *target) {
 	}
 
 	target->src = strdup(src);
-	target->dest = strdup(len ? fetch_destination(alias) :
-		dest_table[0].value);
+	default_dest = len ? find_destination(alias) : 0;
 
 	return 0;
 }

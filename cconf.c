@@ -65,9 +65,11 @@ void cconf_free(struct cconf *c) {
 		for(i=0; i < c->nr; i++) {
 			struct target *t = c->target + i;
 			free(t->src);
-			free(t->dest);
-			for(j=0; j < t->nr; j++)
-				free(t->filter[j]);
+			for(j=0; j < t->nr; j++) {
+				struct filter *f = t->filter + i;
+				free(f->pattern);
+				free(f->dest);
+			}
 			free(t->filter);
 		}
 		free(c->target);
@@ -86,13 +88,13 @@ struct target* cconf_new_target(struct cconf *c) {
 	return t;
 }
 
-void cconf_add_filter(struct target *t, char *filter) {
+void cconf_add_filter(struct target *t, struct filter *filter) {
 
-	if (!filter)
+	if (!filter || !filter->dest)
 		return;
 
-	t->filter = realloc(t->filter, sizeof(t->filter) * (t->nr + 1));
-	t->filter[t->nr++] = filter;
+	t->filter = realloc(t->filter, sizeof(*t->filter) * (t->nr + 1));
+	memcpy(&t->filter[t->nr++], filter, sizeof(*filter));
 }
 
 static size_t parse_filter(void *buf, struct target *target) {
@@ -102,10 +104,15 @@ static size_t parse_filter(void *buf, struct target *target) {
 	if (target->nr) {
 		int i;
 
-		target->filter = malloc(sizeof(char *) * target->nr);
+		target->filter = malloc(sizeof(*target->filter) * target->nr);
 
 		for(i=0; i < target->nr; i++) {
-			target->filter[i] = (char *) buf + offset;
+			struct filter *filter = &target->filter[i];
+
+			filter->pattern = (char *) buf + offset;
+			offset += strsize(buf + offset);
+
+			filter->dest = (char *) buf + offset;
 			offset += strsize(buf + offset);
 		}
 	}
@@ -118,9 +125,6 @@ static size_t parse_target(void *buf, struct target *target) {
 
 	target->src = (char *) buf;
 	offset = strsize(buf);
-
-	target->dest = (char *) buf + offset;
-	offset += strsize(buf + offset);
 
 	return offset;
 }
@@ -219,17 +223,19 @@ int cconf_write(int fd, struct cconf *c) {
 		int j;
 		struct target *target = c->target + i;
 
-		if (!target->src || !target->dest)
+		if (!target->src)
 			return -1;
+
 		sha1_write(&ctx, fd, target->src, strsize(target->src));
-		sha1_write(&ctx, fd, target->dest, strsize(target->dest));
 
 		/* write number of filters */
 		write_int(&ctx, fd, target->nr);
 
 		for(j=0; j < target->nr; j++) {
-			sha1_write(&ctx, fd, target->filter[j],
-				strsize(target->filter[j]));
+			struct filter *f = &target->filter[j];
+
+			sha1_write(&ctx, fd, f->pattern, strsize(f->pattern));
+			sha1_write(&ctx, fd, f->dest, strsize(f->dest));
 		}
 	}
 

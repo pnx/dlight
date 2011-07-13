@@ -53,10 +53,12 @@ int main(int argc, char **argv) {
 		struct target *t = c->target + i;
 
 		printf("src: %s\n", t->src);
-		printf("dest: %s\n", t->dest);
 
 		for(j=0; j < t->nr; j++)
-			printf("filter: %s\n", t->filter[j]);
+			printf("filter:\n"
+				"\tpattern: %s\n"
+				"\tdestination: %s\n",
+				t->filter[j].pattern, t->filter[j].dest);
 
 		printf("---\n");
 	}

@@ -10,4 +10,4 @@ url1
 
 url2	dest2
 	regex5
-	regex6
+	regex6 dest1

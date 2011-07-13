@@ -32,10 +32,14 @@ struct cconf_header {
 	unsigned char crc[20];
 };
 
+struct filter {
+	char *pattern;
+	char *dest; /* destination, path on filesystem */
+};
+
 struct target {
 	char *src; /* source. (url) */
-	char *dest; /* destination, path on filesystem */
-	char **filter;
+	struct filter *filter;
 	unsigned int nr;
 };
 
@@ -52,7 +56,7 @@ void cconf_free(struct cconf *c);
 
 struct target* cconf_new_target(struct cconf *c);
 
-void cconf_add_filter(struct target *t, char *filter);
+void cconf_add_filter(struct target *t, struct filter *filter);
 
 int cconf_write(int fd, struct cconf *c);
 
