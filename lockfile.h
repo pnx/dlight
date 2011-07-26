@@ -24,11 +24,12 @@
 #define LOCKFILE_H
 
 struct lockfile {
+	struct lockfile *next;
 	int fd;
 	char name[4096];
 };
 
-#define LOCKFILE_INIT { -1, { 0 } }
+#define LOCKFILE_INIT { 0, -1, { 0 } }
 
 int hold_lock(struct lockfile *lock, const char *filename, int force);
 

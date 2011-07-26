@@ -31,9 +31,57 @@
 
 #define locked(x) ((x)->fd >= 0)
 
+static struct lockfile *active_locks;
+
+static void release_all_locks() {
+
+	struct lockfile *lock = active_locks;
+
+	while(lock) {
+		if (lock->name[0]) {
+			if (lock->fd >= 0)
+				close(lock->fd);
+			unlink(lock->name);
+		}
+		lock = lock->next;
+	}
+}
+
+static void remove_from_list(struct lockfile *lock) {
+
+	struct lockfile *it;
+
+	if (active_locks == lock) {
+		active_locks = lock->next = NULL;
+		return;
+	}
+
+	for(it = active_locks; it; it = it->next) {
+
+		if (it->next != lock)
+			continue;
+
+		it->next = lock->next;
+		lock->next = NULL;
+	}
+}
+
+static inline void init(void) {
+
+	static int is_init = 0;
+
+	if (is_init)
+		return;
+
+	atexit(release_all_locks);
+	is_init = 1;
+}
+
 int hold_lock(struct lockfile *lock, const char *filename, int force) {
 
 	int rc, mask = O_WRONLY | O_CREAT | O_TRUNC;
+
+	init();
 
 	if (locked(lock))
 		return -1;
@@ -55,6 +103,8 @@ int hold_lock(struct lockfile *lock, const char *filename, int force) {
 		}
 		return -1;
 	}
+	lock->next = active_locks;
+	active_locks = lock;
 	return lock->fd;
 }
 
@@ -73,6 +123,7 @@ int commit_lock(struct lockfile *lock) {
 
 	if (rename(lock->name, target))
 		return -1;
+	remove_from_list(lock);
 	lock->name[0] = '\0';
 	close(lock->fd);
 	lock->fd = -1;
@@ -87,6 +138,7 @@ int release_lock(struct lockfile *lock) {
 		return 0;
 	rc = unlink(lock->name);
 	if (rc == 0) {
+		remove_from_list(lock);
 		lock->name[0] = '\0';
 		close(lock->fd);
 		lock->fd = -1;
