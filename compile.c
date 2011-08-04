@@ -27,11 +27,10 @@
 #include <errno.h>
 #include <ctype.h>
 #include "env.h"
+#include "error.h"
 #include "cconf.h"
 #include "lockfile.h"
 #include "filter.h"
-
-#define error(...) fprintf(stderr, "error: " __VA_ARGS__)
 
 #define isalias(x) (isalnum(x) || (x) == '-')
 
@@ -252,8 +251,7 @@ static int parse_target(struct target *target) {
 	if (!alias)
 		return -1;
 	if (!alias[0] && !dest_table_nr) {
-		error("No destination found for target '%s'\n", src);
-		return -1;
+		return error("No destination found for target '%s'\n", src);
 	}
 
 	target->src = strdup(src);

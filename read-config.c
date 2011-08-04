@@ -22,8 +22,9 @@
 #include <string.h>
 #include "cconf.h"
 #include "env.h"
+#include "error.h"
 
-static char *usage = "dlight-read-config [ <file> | -h ]\n";
+static char *usagestr = "dlight-read-config [ <file> | -h ]";
 
 int main(int argc, char **argv) {
 
@@ -33,8 +34,7 @@ int main(int argc, char **argv) {
 
 	if (argc > 1) {
 		if (!strcmp(argv[1], "-h")) {
-			fprintf(stderr, usage);
-			return 1;
+			usage(usagestr);
 		}
 		strncpy(file, argv[1], sizeof(file));
 	} else {

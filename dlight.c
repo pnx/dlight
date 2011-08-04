@@ -3,13 +3,12 @@
 #include <string.h>
 #include <errno.h>
 #include "env.h"
+#include "error.h"
 #include "cconf.h"
 #include "dlhist.h"
 #include "filter.h"
 #include "http.h"
 #include "rss.h"
-
-#define error(...) fprintf(stderr, "error: " __VA_ARGS__)
 
 static void process_items(rss_t rss, struct target *t) {
 
@@ -29,8 +28,7 @@ static void process_items(rss_t rss, struct target *t) {
 
 			if (http_download_file(item.link, filter->dest) < 0 &&
 				errno != EEXIST) {
-				printf("download failed: %s\n",
-					strerror(errno));
+				error("download failed: %s\n", strerror(errno));
 				continue;
 			}
 

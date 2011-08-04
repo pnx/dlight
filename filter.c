@@ -21,17 +21,18 @@
 #include <pcre.h>
 #include <stdio.h>
 #include <string.h>
+#include "error.h"
 #include "filter.h"
 
 static inline pcre* compile(const char *pattern) {
 
-	const char *error;
+	const char *err;
 	int eoffset;
 	pcre *regex;
 
-	regex = pcre_compile(pattern, 0, &error, &eoffset, NULL);
+	regex = pcre_compile(pattern, 0, &err, &eoffset, NULL);
 	if (!regex) {
-		fprintf(stderr, "Error compiling expression\n");
+		error("Error compiling expression\n");
 		return NULL;
 	}
 
@@ -48,14 +49,14 @@ static inline int match(pcre *pcre, const char *subject) {
 
 int filter_check_syntax(const char *pattern) {
 
-	const char *error;
+	const char *err;
 	int eoffset;
 	pcre *regex;
 
-	regex = pcre_compile(pattern, 0, &error, &eoffset, NULL);
+	regex = pcre_compile(pattern, 0, &err, &eoffset, NULL);
 	if (!regex) {
-		fprintf(stderr, "filter: error in expression '%s': %s\n",
-			pattern, error);
+		error("filter: error in expression '%s': %s\n",
+			pattern, err);
 		return 0;
 	}
 	return 1;
