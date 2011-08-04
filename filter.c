@@ -24,7 +24,12 @@
 #include "error.h"
 #include "filter.h"
 
-static inline pcre* compile(const char *pattern) {
+struct __error_info {
+	const char *msg;
+	int offset;
+};
+
+static inline pcre* compile(const char *pattern, struct __error_info *info) {
 
 	const char *err;
 	int eoffset;
@@ -32,7 +37,10 @@ static inline pcre* compile(const char *pattern) {
 
 	regex = pcre_compile(pattern, 0, &err, &eoffset, NULL);
 	if (!regex) {
-		error("Error compiling expression\n");
+		if (info) {
+			info->msg = error;
+			info->offset = eoffset;
+		}
 		return NULL;
 	}
 
@@ -49,14 +57,11 @@ static inline int match(pcre *pcre, const char *subject) {
 
 int filter_check_syntax(const char *pattern) {
 
-	const char *err;
-	int eoffset;
-	pcre *regex;
+	struct __error_info info;
 
-	regex = pcre_compile(pattern, 0, &err, &eoffset, NULL);
-	if (!regex) {
+	if (!compile(pattern, &info)) {
 		error("filter: error in expression '%s': %s\n",
-			pattern, err);
+			pattern, info.msg);
 		return 0;
 	}
 	return 1;
@@ -70,7 +75,7 @@ int filter_match(const char *pattern, const char *subject) {
 	if (!pattern || !subject)
 		return 0;
 
-	regex = compile(pattern);
+	regex = compile(pattern, NULL);
 	if (!regex)
 		return 0;
 
