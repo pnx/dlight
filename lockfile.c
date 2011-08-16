@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -66,6 +67,22 @@ static void remove_from_list(struct lockfile *lock) {
 	}
 }
 
+static void register_signal_handl(void (*handl)(int)) {
+
+	signal(SIGINT, handl);
+	signal(SIGHUP, handl);
+	signal(SIGTERM, handl);
+	signal(SIGQUIT, handl);
+	signal(SIGPIPE, handl);
+}
+
+static void sig_remove_from_list(int signo) {
+
+	release_all_locks();
+	signal(signo, SIG_DFL);
+	raise(signo);
+}
+
 static inline void init(void) {
 
 	static int is_init = 0;
@@ -73,6 +90,7 @@ static inline void init(void) {
 	if (is_init)
 		return;
 
+	register_signal_handl(sig_remove_from_list);
 	atexit(release_all_locks);
 	is_init = 1;
 }
