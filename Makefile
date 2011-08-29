@@ -3,7 +3,7 @@ CC = gcc
 LDFLAGS = -lxml2 -lcurl -lpcre
 CFLAGS = -g -Wall -O2 -I/usr/include/libxml2
 
-PROGRAMS = dlight dlight-compile dlight-read-config
+PROGRAMS = dlight dlight-compile dlight-read-config dlight-filter-check
 
 all : $(PROGRAMS)
 
@@ -13,6 +13,7 @@ install : $(PROGRAMS)
 dlight : dlight.o env.o http.o rss.o lockfile.o filter.o cconf.o dlhist.o error.o
 dlight-compile : compile.o env.o lockfile.o filter.o cconf.o error.o
 dlight-read-config : read-config.o env.o cconf.o error.o
+dlight-filter-check: filter-check.o filter.o error.o
 
 dlight-% : %.o
 	$(CC) $(LDFLAGS) -o $@ $^
