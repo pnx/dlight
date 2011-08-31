@@ -134,7 +134,7 @@ static CURL* setup_connection(const char *url) {
 
 struct http_data* http_fetch_page(const char *url) {
 
-	CURL *handle = curl_easy_init();
+	CURL *handle;
 	CURLcode res;
 	struct http_data *data = malloc(sizeof(struct http_data));
 
