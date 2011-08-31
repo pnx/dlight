@@ -29,8 +29,6 @@ struct http_data {
 
 struct http_data* http_fetch_page(const char *url);
 
-int http_download_page(const char *url, const char *file);
-
 int http_download_file(const char *url, const char *dir);
 
 void http_free(struct http_data *data);
