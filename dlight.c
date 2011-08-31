@@ -32,6 +32,8 @@ static void process_items(rss_t rss, struct target *t) {
 				continue;
 			}
 
+			printf("Downloaded: %s\n", item.title);
+
 			dlhist_update(item.link);
 		}
 	}
