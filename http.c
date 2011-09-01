@@ -48,29 +48,18 @@ static char* strnstrr(const char *str, const char *needle, size_t size) {
 	return NULL;
 }
 
-static char* url_filename(const char *url) {
+static const char* url_filename(const char *url) {
 
 	const char *start = url;
-	char *name = NULL;
-	size_t size;
 
 	for(; *url; url++) {
 		if (*url != '/')
 			continue;
-		if (*(url+1)) {
-			start = url+1;
-		} else {
-			url--;
+		if (*(url+1) == 0)
 			break;
-		}
+		start = url + 1;
 	}
-	size = url - start;
-	if (size) {
-		name = malloc(size + 1);
-		memcpy(name, start, size + 1);
-		name[size+1] = '\0';
-	}
-	return name;
+	return start;
 }
 
 #define HDR_CONDISP "Content-Disposition:"
@@ -164,21 +153,25 @@ error:
 
 int http_download_file(const char *url, const char *dir) {
 
-	int fd, err;
-	char *filename = NULL;
-	char path[4096];
-	CURL *handle;
+	int err;
+	CURL *handle = NULL;
 	CURLcode res;
-	struct http_data *data = malloc(sizeof(struct http_data));
+	FILE *fd;
+	char tmpfile[4096], *filename = NULL;
 
-	data->block = NULL;
-	data->len = 0;
+	/* Construct an filename from url. */
+	snprintf(tmpfile, sizeof(tmpfile), "%s/%s", dir, url_filename(url));
+
+	fd = fopen(tmpfile, "w");
+	if (!fd)
+		goto error;
 
 	handle = setup_connection(url);
 
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_cb);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, data);
+	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, fwrite);
+	curl_easy_setopt(handle, CURLOPT_WRITEDATA, fd);
 
+	/* try look for the real filename in the http header */
 	curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, hdr_fname_cb);
 	curl_easy_setopt(handle, CURLOPT_HEADERDATA, &filename);
 
@@ -189,22 +182,19 @@ int http_download_file(const char *url, const char *dir) {
 		goto error;
 	}
 
-	if (!filename) {
-		filename = url_filename(url);
+	if (filename) {
+		/* found the real file in http header.
+		   move the old file. */
+		char realfile[4096];
+
+		snprintf(realfile, sizeof(realfile), "%s/%s", dir, filename);
+		if (rename(tmpfile, realfile) < 0)
+			goto error;
+		free(filename);
+	} else {
+		fclose(fd);
 	}
 
-	/* now, write to file */
-	snprintf(path, sizeof(path), "%s/%s", dir, filename);
-	fd = open(path, O_CREAT | O_EXCL | O_WRONLY, 0644);
-	if (fd < 0)
-		goto error;
-
-	write(fd, data->block, data->len);
-
-	close(fd);
-
-	free(filename);
-	http_free(data);
 	curl_easy_cleanup(handle);
 
 	return 0;
@@ -212,7 +202,7 @@ error:
 	err = errno;
 	if (filename)
 		free(filename);
-	http_free(data);
+	fclose(fd);
 	curl_easy_cleanup(handle);
 	errno = err;
 	return -1;
