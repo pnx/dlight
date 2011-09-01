@@ -99,7 +99,7 @@ static size_t write_cb(void *src, size_t smemb, size_t nmemb, void *data) {
 
 	dest->block = realloc(dest->block, dest->len + size);
 	if (dest->block == NULL) {
-		error("out of memory\n");
+		error("out of memory");
 		return 0;
 	}
 	memcpy(dest->block + dest->len, src, size);
@@ -138,7 +138,7 @@ struct http_data* http_fetch_page(const char *url) {
 	res = curl_easy_perform(handle);
 
 	if (res != CURLE_OK) {
-		error("curl: (%s) %s\n", url, curl_easy_strerror(res));
+		error("curl: (%s) %s", url, curl_easy_strerror(res));
 		goto error;
 	}
 
@@ -178,7 +178,7 @@ int http_download_file(const char *url, const char *dir) {
 	res = curl_easy_perform(handle);
 
 	if (res != CURLE_OK) {
-		error("curl: (%s) %s\n", url, curl_easy_strerror(res));
+		error("curl: (%s) %s", url, curl_easy_strerror(res));
 		goto error;
 	}
 
