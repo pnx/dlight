@@ -28,6 +28,11 @@
 #include "error.h"
 #include "http.h"
 
+struct http_file_req {
+	char *filename;
+	FILE *fd;
+};
+
 static char* strnstrr(const char *str, const char *needle, size_t size) {
 
 	char *ptr;
@@ -108,9 +113,16 @@ static size_t write_cb(void *src, size_t smemb, size_t nmemb, void *data) {
 	return size;
 }
 
-static CURL* setup_connection(const char *url) {
+#define HTTPREQ_MEM	0
+#define HTTPREQ_FILE	1
 
-	CURL *handle = curl_easy_init();
+static int http_request(const char *url, void *req, int mode) {
+
+	CURL *handle;
+	CURLcode res;
+	int ret = 0;
+
+	handle = curl_easy_init();
 
 	curl_easy_setopt(handle, CURLOPT_URL, url);
 	curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
@@ -118,92 +130,81 @@ static CURL* setup_connection(const char *url) {
 	curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(handle, CURLOPT_TIMEOUT, 10);
 
-	return handle;
+	if (mode == HTTPREQ_MEM) {
+		curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_cb);
+		curl_easy_setopt(handle, CURLOPT_WRITEDATA, req);
+	} else {
+		struct http_file_req *freq = req;
+
+		curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, fwrite);
+		curl_easy_setopt(handle, CURLOPT_WRITEDATA, freq->fd);
+
+		curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, hdr_fname_cb);
+		curl_easy_setopt(handle, CURLOPT_HEADERDATA, &freq->filename);
+	}
+
+	res = curl_easy_perform(handle);
+	if (res != CURLE_OK) {
+		error("curl: (%s) %s", url, curl_easy_strerror(res));
+		ret = -1;
+	}
+
+	curl_easy_cleanup(handle);
+
+	return ret;
 }
 
 struct http_data* http_fetch_page(const char *url) {
 
-	CURL *handle;
-	CURLcode res;
 	struct http_data *data = malloc(sizeof(struct http_data));
 
 	data->block = NULL;
 	data->len = 0;
 
-	handle = setup_connection(url);
-
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_cb);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, data);
-
-	res = curl_easy_perform(handle);
-
-	if (res != CURLE_OK) {
-		error("curl: (%s) %s", url, curl_easy_strerror(res));
-		goto error;
+	if (http_request(url, data, HTTPREQ_MEM) < 0) {
+		http_free(data);
+		return NULL;
 	}
-
-	curl_easy_cleanup(handle);
-
 	return data;
-error:
-	curl_easy_cleanup(handle);
-	http_free(data);
-	return NULL;
 }
 
 int http_download_file(const char *url, const char *dir) {
 
 	int err;
-	CURL *handle = NULL;
-	CURLcode res;
-	FILE *fd;
-	char tmpfile[4096], *filename = NULL;
+	char tmpfile[4096];
+	struct http_file_req req = { 0 };
 
 	/* Construct an filename from url. */
 	snprintf(tmpfile, sizeof(tmpfile), "%s/%s", dir, url_filename(url));
 
-	fd = fopen(tmpfile, "w");
-	if (!fd)
+	req.fd = fopen(tmpfile, "w");
+	if (!req.fd)
 		goto error;
 
-	handle = setup_connection(url);
-
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, fwrite);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, fd);
-
-	/* try look for the real filename in the http header */
-	curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, hdr_fname_cb);
-	curl_easy_setopt(handle, CURLOPT_HEADERDATA, &filename);
-
-	res = curl_easy_perform(handle);
-
-	if (res != CURLE_OK) {
-		error("curl: (%s) %s", url, curl_easy_strerror(res));
+	if (http_request(url, &req, HTTPREQ_FILE) < 0)
 		goto error;
-	}
 
-	if (filename) {
+	if (req.filename) {
 		/* found the real file in http header.
 		   move the old file. */
 		char realfile[4096];
 
-		snprintf(realfile, sizeof(realfile), "%s/%s", dir, filename);
+		snprintf(realfile, sizeof(realfile), "%s/%s",
+			dir, req.filename);
+
 		if (rename(tmpfile, realfile) < 0)
 			goto error;
-		free(filename);
+		free(req.filename);
 	} else {
-		fclose(fd);
+		fclose(req.fd);
 	}
-
-	curl_easy_cleanup(handle);
 
 	return 0;
 error:
 	err = errno;
-	if (filename)
-		free(filename);
-	fclose(fd);
-	curl_easy_cleanup(handle);
+	if (req.filename)
+		free(req.filename);
+	fclose(req.fd);
 	errno = err;
 	return -1;
 }
