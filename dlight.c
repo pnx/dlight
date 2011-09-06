@@ -10,6 +10,8 @@
 #include "http.h"
 #include "rss.h"
 
+#define DLHIST_PURGE_INTERVAL (60*60*6) /* 6 hours (in seconds) */
+
 static void process_items(rss_t rss, struct target *t) {
 
 	int i;
@@ -44,7 +46,7 @@ static void process(struct cconf *config) {
 	int i;
 	struct http_data *data;
 
-	dlhist_purge(7200);
+	dlhist_purge(DLHIST_PURGE_INTERVAL);
 
 	for(i=0; i < config->nr; i++) {
 		struct target *t = config->target + i;
