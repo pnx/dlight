@@ -28,7 +28,7 @@ static void process_items(rss_t rss, struct target *t) {
 
 			if (http_download_file(item.link, filter->dest) < 0 &&
 				errno != EEXIST) {
-				error("download failed: %s\n", strerror(errno));
+				error("download failed: %s", strerror(errno));
 				continue;
 			}
 

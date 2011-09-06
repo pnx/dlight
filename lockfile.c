@@ -114,7 +114,7 @@ int hold_lock(struct lockfile *lock, const char *filename, int force) {
 	lock->fd = open(lock->name, mask, 0600);
 	if (lock->fd < 0) {
 		return error(errno == EEXIST ?
-			"'%s' is locked\n" : "unable to create lockfile '%s'",
+			"'%s' is locked" : "unable to create lockfile '%s'",
 			lock->name);
 	}
 	lock->next = active_locks;
