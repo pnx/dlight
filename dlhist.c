@@ -120,7 +120,8 @@ static void he_remove(struct hash_entry *he) {
 
 static void resize_table() {
 
-	unsigned int load, i, old_size = table_size;
+	double load;
+	unsigned int i, old_size = table_size;
 	struct hash_entry *old = table;
 
 	load = HASH_TABLE_LOAD(table_count, table_size);
