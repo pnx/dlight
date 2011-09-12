@@ -1,4 +1,4 @@
-/* filter.h
+/* lockfile.h
  *
  *   Copyright (C) 2011       Henrik Hautakoski <henrik@fiktivkod.org>
  *   Copyright (C) 2005       Junio C Hamano
