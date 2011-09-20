@@ -34,7 +34,8 @@ static void process_items(rss_t rss, struct target *t) {
 				continue;
 			}
 
-			printf("Downloaded: %s\n", item.title);
+			printf("Downloaded: %s (%s) to %s\n",
+				item.title, item.link, filter->dest);
 
 			dlhist_update(item.link);
 		}
