@@ -30,8 +30,6 @@
 #include "error.h"
 #include "lockfile.h"
 
-#define locked(x) ((x)->fd >= 0)
-
 static struct lockfile *active_locks;
 
 static void release_all_locks() {
@@ -101,7 +99,7 @@ int hold_lock(struct lockfile *lock, const char *filename, int force) {
 
 	init();
 
-	if (locked(lock))
+	if (is_locked(lock))
 		return -1;
 
 	if (!force)
@@ -127,7 +125,7 @@ int commit_lock(struct lockfile *lock) {
 	char target[4096];
 	int len;
 
-	if (!locked(lock))
+	if (!is_locked(lock))
 		return 0;
 
 	len = strlen(lock->name) - 5; /* .lock */
@@ -148,7 +146,7 @@ int release_lock(struct lockfile *lock) {
 
 	int rc;
 
-	if (!locked(lock))
+	if (!is_locked(lock))
 		return 0;
 	rc = unlink(lock->name);
 	if (rc == 0) {
