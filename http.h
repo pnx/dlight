@@ -27,10 +27,19 @@ struct http_data {
 	size_t len;
 };
 
+struct http_file {
+	struct http_data data;
+	char *filename;
+};
+
 struct http_data* http_fetch_page(const char *url);
+
+struct http_file* http_fetch_file(const char *url);
 
 int http_download_file(const char *url, const char *dir);
 
 void http_free(struct http_data *data);
+
+void http_free_file(struct http_file *file);
 
 #endif

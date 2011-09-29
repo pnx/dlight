@@ -115,12 +115,14 @@ static size_t write_cb(void *src, size_t smemb, size_t nmemb, void *data) {
 
 #define HTTPREQ_MEM	0
 #define HTTPREQ_FILE	1
+#define HTTPREQ_FILEMEM 2
 
 static int http_request(const char *url, void *req, int mode) {
 
 	CURL *handle;
 	CURLcode res;
 	int ret = 0;
+	void *headerdata = NULL;
 
 	handle = curl_easy_init();
 
@@ -130,17 +132,27 @@ static int http_request(const char *url, void *req, int mode) {
 	curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0);
 	curl_easy_setopt(handle, CURLOPT_TIMEOUT, 10);
 
-	if (mode == HTTPREQ_MEM) {
-		curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_cb);
-		curl_easy_setopt(handle, CURLOPT_WRITEDATA, req);
-	} else {
+	if (mode == HTTPREQ_FILE) {
 		struct http_file_req *freq = req;
 
 		curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, fwrite);
 		curl_easy_setopt(handle, CURLOPT_WRITEDATA, freq->fd);
 
+		headerdata = &freq->filename;
+	} else {
+		curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_cb);
+		if (mode == HTTPREQ_FILEMEM) {
+			struct http_file *file = req;
+
+			req = &file->data;
+			headerdata = &file->filename;
+		}
+		curl_easy_setopt(handle, CURLOPT_WRITEDATA, req);
+	}
+
+	if (headerdata) {
 		curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, hdr_fname_cb);
-		curl_easy_setopt(handle, CURLOPT_HEADERDATA, &freq->filename);
+		curl_easy_setopt(handle, CURLOPT_HEADERDATA, headerdata);
 	}
 
 	res = curl_easy_perform(handle);
@@ -166,6 +178,25 @@ struct http_data* http_fetch_page(const char *url) {
 		return NULL;
 	}
 	return data;
+}
+
+struct http_file* http_fetch_file(const char *url) {
+
+	struct http_file *file = malloc(sizeof(struct http_file));
+
+	file->data.block = NULL;
+	file->data.len = 0;
+	file->filename = NULL;
+
+	if (http_request(url, file, HTTPREQ_FILEMEM) < 0) {
+		http_free_file(file);
+		return NULL;
+	}
+
+	if (!file->filename)
+		file->filename = strdup(url_filename(url));
+
+	return file;
 }
 
 int http_download_file(const char *url, const char *dir) {
@@ -216,4 +247,15 @@ void http_free(struct http_data *data) {
 	if (data->block)
 		free(data->block);
 	free(data);
+}
+
+void http_free_file(struct http_file *file) {
+
+	if (!file)
+		return;
+	if (file->data.block)
+		free(file->data.block);
+	if (file->filename)
+		free(file->filename);
+	free(file);
 }
