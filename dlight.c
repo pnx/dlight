@@ -1,6 +1,10 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
 #include "env.h"
 #include "error.h"
@@ -12,12 +16,34 @@
 
 #define DLHIST_PURGE_INTERVAL (60*60*6) /* 6 hours (in seconds) */
 
+static int write_http_file(struct http_file *file, const char *dest) {
+
+	char path[4096];
+	int rc, fd;
+
+	snprintf(path, sizeof(path), "%s/%s",
+		dest, file->filename);
+
+	fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0664);
+	if (fd < 0 && errno != EEXIST) {
+		error("failed to write file: %s\n", path);
+		return -1;
+	}
+
+	rc = write(fd, file->data.block, file->data.len);
+	close(fd);
+
+	return rc;
+}
+
 static void process_items(rss_t rss, struct target *t) {
 
 	int i;
 	struct rss_item item;
 
 	while(rss_walk_next(rss, &item)) {
+
+		struct http_file *file = NULL;
 
 		if (dlhist_lookup(item.link))
 			continue;
@@ -28,17 +54,27 @@ static void process_items(rss_t rss, struct target *t) {
 			if (!filter_match(filter->pattern, item.title))
 				continue;
 
-			if (http_download_file(item.link, filter->dest) < 0 &&
-				errno != EEXIST) {
-				error("download failed: %s", strerror(errno));
-				continue;
+			/* fetch the file if we haven't already. */
+			if (file == NULL) {
+				file = http_fetch_file(item.link);
+				if (file == NULL) {
+					error("download failed: %s",
+						strerror(errno));
+					continue;
+				}
 			}
+
+			/* save file to disk. */
+			if (write_http_file(file, filter->dest) < 0)
+				continue;
 
 			printf("Downloaded: %s (%s) to %s\n",
 				item.title, item.link, filter->dest);
 
 			dlhist_update(item.link);
 		}
+
+		http_free_file(file);
 	}
 }
 
