@@ -27,7 +27,7 @@ void usage(const char *msg, ...);
 
 void warn(const char *msg, ...);
 
-void die(const char *msg, ...);
+void fatal(const char *msg, ...);
 
 int error(const char *msg, ...);
 
