@@ -58,8 +58,7 @@ static void process_items(rss_t rss, struct target *t) {
 			if (file == NULL) {
 				file = http_fetch_file(item.link);
 				if (file == NULL) {
-					error("download failed: %s",
-						strerror(errno));
+					error("download failed");
 					continue;
 				}
 			}
