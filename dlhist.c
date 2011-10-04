@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <openssl/sha.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,11 +30,6 @@
 #include "env.h"
 #include "lockfile.h"
 #include "dlhist.h"
-
-/*
- * TODO: maybe better to store hashes instead of strings in the file
- * to 1, make records fixed size. 2, faster memory copy.
- */
 
 /* \195 D L H */
 #define SIGNATURE 0xC3444C48
@@ -49,12 +45,17 @@ struct header {
 	unsigned int size;
 };
 
-struct hash_entry {
-	unsigned int time;
-	char *key;
+union hash {
+	unsigned int  index;
+	unsigned char sha1[20];
 };
 
-#define he_empty(x) (!(x) || (x)->key == NULL)
+struct hash_entry {
+	union hash   hash;
+	unsigned int time;
+};
+
+#define he_empty(x) (!(x) || (x)->hash.index == 0)
 
 static struct lockfile lock = LOCKFILE_INIT;
 
@@ -62,29 +63,35 @@ static struct hash_entry *table;
 static unsigned int table_size;
 static unsigned int table_count;
 
-static unsigned hash(const char *s) {
+static void hash(union hash *h, const char *s) {
 
-	unsigned h;
+	unsigned n = 0;
+	const char *ptr;
 
-        for(h=0; *s; s++) {
-		if (!strncmp(s, "://", 3)) {
-			h = 0;
-			s += 2;
-		} else if (!strncmp(s, "/", 2)) {
+	for(ptr = s; *ptr; ptr++) {
+		if (!strncmp(ptr, "://", 3)) {
+			n = 0;
+			s = ptr;
+		} else if (!strncmp(ptr, "/", 2)) {
 			break;
 		}
-		h = ((unsigned)*s) + (h << 6) + (h << 16) - h;
+		n++;
 	}
-	return h;
+	SHA1((unsigned char *)s, n, h->sha1);
 }
 
 static struct hash_entry* lookup(const char *key) {
 
-	unsigned index = hash(key) % table_size;
+	unsigned int index;
+	union hash h;
+
+	hash(&h, key);
+
+	index = h.index % table_size;
 
 	/* linear probing */
-	while(table[index].key) {
-		if (!strcmp(table[index].key, key))
+	while(!he_empty(table + index)) {
+		if (!memcmp(table[index].hash.sha1, h.sha1, 20))
 			break;
 		index = (index + 1) % table_size;
 	}
@@ -95,13 +102,13 @@ static inline void he_set(struct hash_entry *he, const char *key) {
 
 	if (!he_empty(he))
 		return;
-	he->key = strdup(key);
+	hash(&he->hash, key);
 	table_count++;
 }
 
 static int he_insert(struct hash_entry *he) {
 
-	struct hash_entry *dest = lookup(he->key);
+	struct hash_entry *dest = table + (he->hash.index % table_size);
 
 	if (he_empty(dest)) {
 		memcpy(dest, he, sizeof(*he));
@@ -113,7 +120,6 @@ static int he_insert(struct hash_entry *he) {
 
 static void he_remove(struct hash_entry *he) {
 
-	free(he->key);
 	memset(he, 0, sizeof(*he));
 	table_count--;
 }
@@ -157,24 +163,18 @@ static void build_table(const char *buf, size_t len) {
 	table = calloc(sizeof(*table), table_size);
 
 	while(offset < len) {
-		unsigned int keylen;
 		struct hash_entry entry;
+
+		memcpy(&entry.hash, buf + offset, sizeof(entry.hash));
+		offset += sizeof(entry.hash);
 
 		memcpy(&entry.time, buf + offset, sizeof(entry.time));
 		offset += sizeof(entry.time);
 
-		memcpy(&keylen, buf + offset, sizeof(keylen));
-		offset += sizeof(keylen);
-
+		entry.hash.index = ntohl(entry.hash.index);
 		entry.time = ntohl(entry.time);
-		keylen = ntohl(keylen);
 
-		entry.key = malloc(keylen);
-		memcpy(entry.key, buf + offset, keylen);
-		offset += keylen;
-
-		if (he_insert(&entry) < 0)
-			free(entry.key);
+		he_insert(&entry);
 	}
 }
 
@@ -274,7 +274,7 @@ void dlhist_purge(unsigned int timestamp) {
 	for(i=0; i < table_size; i++) {
 		struct hash_entry *entry = table + i;
 
-		if (entry->key && entry->time <= t)
+		if (!he_empty(entry) && entry->time <= t)
 			he_remove(entry);
 	}
 
@@ -302,18 +302,17 @@ void dlhist_flush() {
 
 	/* Write hash entries */
 	for(i=0; i < table_size; i++) {
-		unsigned int keylen;
 		struct hash_entry ondisk, *entry = table + i;
 
 		if (he_empty(entry))
 			continue;
 
+		memcpy(&ondisk.hash, &entry->hash, 20);
+		ondisk.hash.index = htonl(entry->hash.index);
 		ondisk.time = htonl(entry->time);
-		keylen = htonl(strlen(entry->key) + 1);
 
+		write(fd, &ondisk.hash, 20);
 		write(fd, &ondisk.time, sizeof(ondisk.time));
-		write(fd, &keylen, sizeof(keylen));
-		write(fd, entry->key, strlen(entry->key) + 1);
 	}
 
 	/* Flush it to the real file */
@@ -322,20 +321,12 @@ void dlhist_flush() {
 
 void dlhist_close() {
 
-	int i;
-
 	dlhist_flush();
 
 	release_lock(&lock);
 
-	if (table) {
-		for(i=0; i < table_size; i++) {
-			struct hash_entry *he = table + i;
-			if (!he_empty(he))
-				free(he->key);
-		}
+	if (table)
 		free(table);
-	}
 	table = NULL;
 	table_count = table_size = 0;
 }
