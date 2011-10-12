@@ -38,7 +38,7 @@ static inline pcre* compile(const char *pattern, struct __error_info *info) {
 	regex = pcre_compile(pattern, 0, &err, &eoffset, NULL);
 	if (!regex) {
 		if (info) {
-			info->msg = error;
+			info->msg = err;
 			info->offset = eoffset;
 		}
 		return NULL;
