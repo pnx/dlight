@@ -26,7 +26,7 @@ static int write_http_file(struct http_file *file, const char *dest) {
 
 	fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0664);
 	if (fd < 0 && errno != EEXIST) {
-		error("failed to write file: %s\n", path);
+		error("failed to write file: %s", path);
 		return -1;
 	}
 
@@ -94,7 +94,7 @@ static void process(struct cconf *config) {
 
 		rss = rss_parse(data->block, data->len);
 		if (!rss) {
-			error("failed to parse rss: %s\n", t->src);
+			error("failed to parse rss: %s", t->src);
 			continue;
 		}
 
