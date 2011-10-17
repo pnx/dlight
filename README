@@ -33,7 +33,7 @@ with the target. it does this for all rss files (targets) in the config.
 
 A set of human-readable configuration files that the user should configure
 dlight through. This is where users defines their targets, destinations,
-filters and other type of information. (currently there is only one file
+filters and other types of information. (currently there is only one file
 with a similar structure that the compiled format use).
 
 	* Compiler
@@ -55,5 +55,5 @@ can be quite slow, the compiled format is designed to provide fast I/O reads.
 Also by using a source -> compiler -> output design, errors can be caught
 in the configuration files when the user invokes the compiler.
 which is a more natural way of notify the user on such errors then to
-have dlight abort and log the error because the program is supposed to be
+have dlight abort and log the error. Because the program is supposed to be
 executed in an automatic manner, the error will not be seen right away.
