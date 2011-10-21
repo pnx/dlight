@@ -10,9 +10,9 @@ all : $(PROGRAMS)
 install : $(PROGRAMS)
 	cp $^ $(HOME)/bin/
 
-dlight : dlight.o env.o http.o rss.o lockfile.o filter.o cconf.o dlhist.o error.o
-dlight-compile : compile.o env.o lockfile.o filter.o cconf.o error.o
-dlight-read-config : read-config.o env.o cconf.o error.o
+dlight : dlight.o buffer.o env.o http.o rss.o lockfile.o filter.o cconf.o dlhist.o error.o
+dlight-compile : compile.o buffer.o env.o lockfile.o filter.o cconf.o error.o
+dlight-read-config : read-config.o buffer.o env.o cconf.o error.o
 dlight-filter-check: filter-check.o filter.o error.o
 
 dlight-% : %.o

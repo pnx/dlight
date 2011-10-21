@@ -24,29 +24,27 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "error.h"
+#include "buffer.h"
 #include "env.h"
 
-static char base[4096];
+static char *base = NULL;
 
 static void get_base() {
 
-	char *ptr;
-	int len;
+	struct buffer buf = BUFFER_INIT;
+	char *ptr = getenv("HOME");
 
-	ptr = getenv("HOME");
 	if (!ptr)
 		ptr = ".";
+	buffer_append_str(&buf, ptr);
+	buffer_append_str(&buf, "/.dlight");
 
-	len = strlen(ptr);
-	if (len < sizeof(base) - 9) {
-		memcpy(base, ptr, len);
-		memcpy(base+len, "/.dlight", 9);
-	}
+	base = buffer_cstr_release(&buf);
 }
 
 const char* env_get_dir() {
 
-	if (!*base) {
+	if (!base) {
 		get_base();
 		if (mkdir(base, 0700) < 0 && errno != EEXIST) {
 			fatal("Unable to create '%s': %s\n",
