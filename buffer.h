@@ -63,6 +63,8 @@ static inline void buffer_reduce(struct buffer *b, size_t len) {
 
 char* buffer_cstr(struct buffer *b);
 
+char* buffer_cstr_release(struct buffer *b);
+
 void buffer_free(struct buffer *b);
 
 void buffer_attach(struct buffer *b, void *str, size_t len, size_t size);

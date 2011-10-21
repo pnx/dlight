@@ -55,6 +55,26 @@ char* buffer_cstr(struct buffer *b) {
 	return (char*) b->block;
 }
 
+char* buffer_cstr_release(struct buffer *b) {
+
+	char *ret;
+
+	if (b->size) {
+		if (b->len + 1 != b->size) {
+			ret = realloc(b->block, b->len + 1);
+		} else {
+			ret = (char *) b->block;
+		}
+		b->block[b->len + 1] = '\0';
+	} else {
+		ret = calloc(1, 1);
+	}
+
+	buffer_init(b);
+
+	return ret;
+}
+
 void buffer_free(struct buffer *b) {
 
 	if (!b->size)
