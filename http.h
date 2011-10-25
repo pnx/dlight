@@ -21,24 +21,20 @@
 #define HTTP_H
 
 #include <stddef.h>
-
-struct http_data {
-	void *block;
-	size_t len;
-};
+#include "buffer.h"
 
 struct http_file {
-	struct http_data data;
+	struct buffer data;
 	char *filename;
 };
 
-struct http_data* http_fetch_page(const char *url);
+struct buffer* http_fetch_page(const char *url);
 
 struct http_file* http_fetch_file(const char *url);
 
 int http_download_file(const char *url, const char *dir);
 
-void http_free(struct http_data *data);
+void http_free(struct buffer *b);
 
 void http_free_file(struct http_file *file);
 

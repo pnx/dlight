@@ -99,16 +99,9 @@ static size_t hdr_fname_cb(void *src, size_t smemb, size_t nmemb, void *data) {
 
 static size_t write_cb(void *src, size_t smemb, size_t nmemb, void *data) {
 
-	struct http_data *dest = (struct http_data *) data;
 	size_t size = smemb * nmemb;
 
-	dest->block = realloc(dest->block, dest->len + size);
-	if (dest->block == NULL) {
-		error("out of memory");
-		return 0;
-	}
-	memcpy(dest->block + dest->len, src, size);
-	dest->len += size;
+	buffer_append(data, src, size);
 
 	return size;
 }
@@ -166,27 +159,26 @@ static int http_request(const char *url, void *req, int mode) {
 	return ret;
 }
 
-struct http_data* http_fetch_page(const char *url) {
+struct buffer* http_fetch_page(const char *url) {
 
-	struct http_data *data = malloc(sizeof(struct http_data));
+	struct buffer *buf = malloc(sizeof(struct buffer));
 
-	data->block = NULL;
-	data->len = 0;
+	buffer_init(buf);
 
-	if (http_request(url, data, HTTPREQ_MEM) < 0) {
-		http_free(data);
+	if (http_request(url, buf, HTTPREQ_MEM) < 0) {
+		buffer_free(buf);
+		free(buf);
 		return NULL;
 	}
-	return data;
+	return buf;
 }
 
 struct http_file* http_fetch_file(const char *url) {
 
 	struct http_file *file = malloc(sizeof(struct http_file));
 
-	file->data.block = NULL;
-	file->data.len = 0;
 	file->filename = NULL;
+	buffer_init(&file->data);
 
 	if (http_request(url, file, HTTPREQ_FILEMEM) < 0) {
 		http_free_file(file);
@@ -240,22 +232,20 @@ error:
 	return -1;
 }
 
-void http_free(struct http_data *data) {
+void http_free(struct buffer *b) {
 
-	if (!data)
-		return;
-	if (data->block)
-		free(data->block);
-	free(data);
+	if (b) {
+		buffer_free(b);
+		free(b);
+	}
 }
 
 void http_free_file(struct http_file *file) {
 
-	if (!file)
-		return;
-	if (file->data.block)
-		free(file->data.block);
-	if (file->filename)
-		free(file->filename);
-	free(file);
+	if (file) {
+		buffer_free(&file->data);
+		if (file->filename)
+			free(file->filename);
+		free(file);
+	}
 }

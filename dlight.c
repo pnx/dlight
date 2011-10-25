@@ -80,7 +80,7 @@ static void process_items(rss_t rss, struct target *t) {
 static void process(struct cconf *config) {
 
 	int i;
-	struct http_data *data;
+	struct buffer *data;
 
 	dlhist_purge(DLHIST_PURGE_INTERVAL);
 
