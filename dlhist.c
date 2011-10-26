@@ -80,22 +80,24 @@ static void hash(union hash *h, const char *s) {
 	SHA1((unsigned char *)s, n, h->sha1);
 }
 
-static struct hash_entry* lookup(const char *key) {
+static struct hash_entry* translate(union hash *he) {
 
-	unsigned int index;
-	union hash h;
-
-	hash(&h, key);
-
-	index = h.index % table_size;
+	unsigned int offset = he->index % table_size;
 
 	/* linear probing */
-	while(!he_empty(table + index)) {
-		if (!memcmp(table[index].hash.sha1, h.sha1, 20))
+	while(!he_empty(table + offset)) {
+		if (!memcmp(table[offset].hash.sha1, he->sha1, 20))
 			break;
-		index = (index + 1) % table_size;
+		offset = (offset + 1) % table_size;
 	}
-	return table + index;
+	return table + offset;
+}
+
+static struct hash_entry* lookup(const char *key) {
+
+	union hash h;
+	hash(&h, key);
+	return translate(&h);
 }
 
 static inline void he_set(struct hash_entry *he, const char *key) {
@@ -108,7 +110,7 @@ static inline void he_set(struct hash_entry *he, const char *key) {
 
 static int he_insert(struct hash_entry *he) {
 
-	struct hash_entry *dest = table + (he->hash.index % table_size);
+	struct hash_entry *dest = translate(&he->hash);
 
 	if (he_empty(dest)) {
 		memcpy(dest, he, sizeof(*he));
