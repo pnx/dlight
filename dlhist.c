@@ -443,3 +443,43 @@ void dlhist_close() {
 	table = NULL;
 	table_count = table_size = 0;
 }
+
+static const char hexmap[16] = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+};
+
+static const char* sha1_to_hex(const unsigned char *sha1) {
+
+	int i;
+	static char hex[41];
+	char *h = hex;
+
+	for(i=0; i < 20; i++) {
+		unsigned char v = *sha1++;
+		*h++ = hexmap[v >> 4];
+		*h++ = hexmap[v & 15];
+	}
+	return hex;
+}
+
+
+void dlhist_print() {
+
+	int i, j;
+
+	for(i=0; i < table_size; i++) {
+		struct hash_entry *entry = table + i;
+
+		if (he_empty(entry))
+			continue;
+
+		printf("%10u %40s\n", entry->key, sha1_to_hex(entry->key));
+
+		for(j=0; j < entry->dest_nr; j++) {
+			struct destination *dest = entry->dest + j;
+
+			printf("\t%10u %s\n", dest->time, dest->path);
+		}
+	}
+}

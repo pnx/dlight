@@ -30,4 +30,8 @@ void dlhist_purge(unsigned int interval);
 
 void dlhist_close(void);
 
+void dlhist_close();
+
+void dlhist_print();
+
 #endif /* DLHIST_H */

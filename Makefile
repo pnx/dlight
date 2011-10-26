@@ -9,7 +9,9 @@ CC = gcc
 LDFLAGS = -lxml2 -lcurl -lpcre
 CFLAGS = -g -Wall -I/usr/include/libxml2
 
-PROGRAMS = dlight dlight-compile dlight-read-config dlight-filter-check
+
+PROGRAMS = dlight dlight-compile dlight-read-config dlight-filter-check \
+	dlight-dlhist-read
 
 ifeq ($(DEBUG), 1)
 	CFLAGS +=-D__DEBUG__
@@ -26,6 +28,7 @@ dlight-compile : compile.o buffer.o env.o lockfile.o filter.o cconf.o \
 	error.o version.o
 dlight-read-config : read-config.o buffer.o env.o cconf.o error.o version.o
 dlight-filter-check: filter-check.o filter.o error.o version.o
+dlight-dlhist-read : dlhist-read.o buffer.o utils.o env.o error.o lockfile.o dlhist.o
 
 dlight-% : %.o
 	$(CC) $(LDFLAGS) -o $@ $^
