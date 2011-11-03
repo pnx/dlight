@@ -42,7 +42,7 @@
 struct header {
 	unsigned int signature;
 	unsigned int version;
-	unsigned int size;
+	unsigned int entries;
 };
 
 union hash {
@@ -168,14 +168,14 @@ static void resize_table() {
 	free(old);
 }
 
-static void build_table(const char *buf, size_t len) {
+static void build_table(const char *buf, size_t entries) {
 
-	size_t offset = 0;
+	size_t i, offset = 0;
 
-	table_size = calculate_size(len / HE_SZ);
+	table_size = calculate_size(entries);
 	table = calloc(sizeof(*table), table_size);
 
-	while(offset < len) {
+	for(i=0; i < entries; i++) {
 		struct hash_entry entry;
 
 		memcpy(&entry.hash, buf + offset, sizeof(entry.hash));
@@ -194,7 +194,8 @@ static void build_table(const char *buf, size_t len) {
 int dlhist_open() {
 
 	char filename[4096], *buf = NULL;
-	int ret = -1, fd = -1, offset = 0;
+	int ret = -1, fd = -1;
+	size_t entries = 0, offset = 0;
 	struct stat st;
 	struct header *hdr;
 
@@ -228,10 +229,20 @@ int dlhist_open() {
 			goto error;
 		}
 
+		entries = htonl(hdr->entries);
+
 		offset = sizeof(*hdr);
 	}
 
-	build_table(buf + offset, st.st_size - offset);
+	if (entries * HE_SZ > st.st_size - offset) {
+		fprintf(stderr,
+			"dlhist_open: file truncated. "
+			"expected atleast '%lu' bytes, got '%lu'\n",
+			entries * HE_SZ, st.st_size - offset);
+		goto error;
+	}
+
+	build_table(buf + offset, entries);
 
 	ret = 0;
 error:
@@ -303,7 +314,7 @@ void dlhist_flush() {
 	/* Write header */
 	hdr.signature = htonl(SIGNATURE);
 	hdr.version = htonl(1);
-	hdr.size = htonl(table_size);
+	hdr.entries = htonl(table_count);
 
 	write(fd, &hdr, sizeof(hdr));
 
