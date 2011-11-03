@@ -257,9 +257,11 @@ error:
 
 int dlhist_lookup(const char *url) {
 
-	if (table_size < 1)
-		return 0;
-	return !he_empty(lookup(url));
+	if (table_size) {
+		struct hash_entry *he = lookup(url);
+		return !he_empty(he);
+	}
+	return 0;
 }
 
 void dlhist_update(const char *url) {
