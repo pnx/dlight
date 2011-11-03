@@ -50,6 +50,10 @@ union hash {
 	unsigned char sha1[20];
 };
 
+/*
+ * NOTE: be sure to change this constant if the struct's size changes.
+ */
+#define HE_SZ (sizeof(union hash) + sizeof(unsigned))
 struct hash_entry {
 	union hash   hash;
 	unsigned int time;
@@ -126,6 +130,18 @@ static void he_remove(struct hash_entry *he) {
 	table_count--;
 }
 
+static unsigned calculate_size(unsigned count) {
+
+	/*
+	 * set size to a load factor that is in the
+	 * middle in the valid range.
+	 */
+	unsigned size = count / 0.625;
+	if (size < TABLE_MIN_SIZE)
+		size = TABLE_MIN_SIZE;
+	return size;
+}
+
 static void resize_table() {
 
 	double load;
@@ -139,13 +155,7 @@ static void resize_table() {
 		(load >= 0.5 && load <= 0.75))
 		return;
 
-	/*
-	 * set size to a load factor that is in the
-	 * middle in the valid range.
-	 */
-	table_size = table_count / 0.625;
-	if (table_size < TABLE_MIN_SIZE)
-		table_size = TABLE_MIN_SIZE;
+	table_size = calculate_size(table_count);
 
 	table_count = 0;
 	table = calloc(sizeof(*table), table_size);
@@ -162,6 +172,7 @@ static void build_table(const char *buf, size_t len) {
 
 	size_t offset = 0;
 
+	table_size = calculate_size(len / HE_SZ);
 	table = calloc(sizeof(*table), table_size);
 
 	while(offset < len) {
@@ -217,14 +228,8 @@ int dlhist_open() {
 			goto error;
 		}
 
-		/* Get current table size */
-		table_size = htonl(hdr->size);
-
 		offset = sizeof(*hdr);
 	}
-
-	if (table_size < 1)
-		table_size = TABLE_MIN_SIZE;
 
 	build_table(buf + offset, st.st_size - offset);
 
