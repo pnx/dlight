@@ -118,10 +118,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (dlhist_open() < 0) {
-		perror("dlhist");
+	if (dlhist_open() < 0)
 		return 1;
-	}
 
 	process(config);
 
