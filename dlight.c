@@ -21,21 +21,8 @@
 static int write_http_file(struct http_file *file, const char *dest) {
 
 	char path[4096];
-	int rc, fd;
-
-	snprintf(path, sizeof(path), "%s/%s",
-		dest, file->filename);
-
-	fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0664);
-	if (fd < 0 && errno != EEXIST) {
-		error("failed to write file: %s", path);
-		return -1;
-	}
-
-	rc = write(fd, file->data.block, file->data.len);
-	close(fd);
-
-	return rc;
+	snprintf(path, sizeof(path), "%s/%s", dest, file->filename);
+	return buffer_write(&file->data, path);
 }
 
 static void process_items(rss_t rss, struct target *t) {
