@@ -95,4 +95,6 @@ static inline void buffer_str_term(struct buffer *b, char ch) {
 		buffer_append_ch(b, ch);
 }
 
+int buffer_write(struct buffer *b, const char *filename);
+
 #endif /* BUFFER_H */

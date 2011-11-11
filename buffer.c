@@ -20,6 +20,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "error.h"
 #include "buffer.h"
 
@@ -98,4 +100,18 @@ void buffer_append(struct buffer *b, const void *ptr, size_t len) {
 	buffer_expand(b, len);
 	memcpy(b->block + b->len, ptr, len);
 	buffer_setlen(b, b->len + len);
+}
+
+int buffer_write(struct buffer *b, const char *filename) {
+
+	int fd, rc;
+
+	fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, 0664);
+	if (fd < 0)
+		return error("%s: %s", filename, strerror(errno));
+
+	rc = write(fd, b->block, b->len);
+	close(fd);
+
+	return rc;
 }
