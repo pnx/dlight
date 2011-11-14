@@ -9,12 +9,12 @@
 #include "env.h"
 #include "error.h"
 #include "cconf.h"
-#include "dlhist.h"
+#include "proc-cache.h"
 #include "filter.h"
 #include "http.h"
 #include "rss.h"
 
-#define DLHIST_PURGE_INTERVAL (60*60*6) /* 6 hours (in seconds) */
+#define PROC_CACHE_PURGE_INTERVAL (60*60*6) /* 6 hours (in seconds) */
 
 static int write_http_file(struct http_file *file, const char *dest) {
 
@@ -45,7 +45,7 @@ static void process_items(rss_t rss, struct target *t) {
 
 		struct http_file *file = NULL;
 
-		if (dlhist_lookup(item.link))
+		if (proc_cache_lookup(item.link))
 			continue;
 
 		for(i=0; i < t->nr; i++) {
@@ -70,7 +70,7 @@ static void process_items(rss_t rss, struct target *t) {
 			printf("Downloaded: %s (%s) to %s\n",
 				item.title, item.link, filter->dest);
 
-			dlhist_update(item.link);
+			proc_cache_update(item.link);
 		}
 
 		http_free_file(file);
@@ -82,7 +82,7 @@ static void process(struct cconf *config) {
 	int i;
 	struct buffer *data;
 
-	dlhist_purge(DLHIST_PURGE_INTERVAL);
+	proc_cache_purge(PROC_CACHE_PURGE_INTERVAL);
 
 	for(i=0; i < config->nr; i++) {
 		struct target *t = config->target + i;
@@ -118,12 +118,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (dlhist_open() < 0)
+	if (proc_cache_open() < 0)
 		return 1;
 
 	process(config);
 
-	dlhist_close();
+	proc_cache_close();
 	cconf_free(config);
 
 	return 0;

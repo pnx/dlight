@@ -1,4 +1,4 @@
-/* dlhist.h
+/* proc-cache.h
  *
  *   Copyright (C) 2011       Henrik Hautakoski <henrik@fiktivkod.org>
  *
@@ -17,19 +17,19 @@
  *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  *   MA 02110-1301, USA.
  */
-#ifndef DLHIST_H
-#define DLHIST_H
+#ifndef PROC_CACHE_H
+#define PROC_CACHE_H
 
-int dlhist_open();
+int proc_cache_open();
 
-int dlhist_lookup(const char *url);
+int proc_cache_lookup(const char *url);
 
-void dlhist_update(const char *url);
+void proc_cache_update(const char *url);
 
-void dlhist_purge(unsigned int timestamp);
+void proc_cache_purge(unsigned int timestamp);
 
-void dlhist_flush();
+void proc_cache_flush();
 
-void dlhist_close();
+void proc_cache_close();
 
-#endif /* DLHIST */
+#endif /* PROC_CACHE_H */

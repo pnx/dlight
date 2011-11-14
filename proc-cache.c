@@ -1,4 +1,4 @@
-/* dlhist.c
+/* proc-cache.c
  *
  *   Copyright (C) 2011       Henrik Hautakoski <henrik@fiktivkod.org>
  *
@@ -29,11 +29,11 @@
 #include <time.h>
 #include "env.h"
 #include "lockfile.h"
-#include "dlhist.h"
+#include "proc-cache.h"
 
-/* \195 D L H */
-#define SIGNATURE 0xC3444C48
-#define STORAGE_FILE "dlhist"
+/* \175 D P C */
+#define SIGNATURE 0xAF445043
+#define STORAGE_FILE "proc-cache"
 
 #define TABLE_MIN_SIZE 128
 
@@ -191,7 +191,7 @@ static void build_table(const char *buf, size_t entries) {
 	}
 }
 
-int dlhist_open() {
+int proc_cache_open() {
 
 	char filename[4096], *buf = NULL;
 	int ret = -1, fd = -1;
@@ -209,7 +209,7 @@ int dlhist_open() {
 
 	fd = open(filename, O_CREAT | O_RDONLY, 0600);
 	if (fd < 0 || fstat(fd, &st) < 0) {
-		perror("dlhist_open");
+		perror("proc_cache_open");
 		goto error;
 	}
 
@@ -225,7 +225,7 @@ int dlhist_open() {
 		hdr = (struct header *) buf;
 		if (hdr->signature != htonl(SIGNATURE) ||
 			hdr->version != htonl(1)) {
-			fprintf(stderr, "dlhist_open: Invalid header\n");
+			fprintf(stderr, "proc_cache_open: Invalid header\n");
 			goto error;
 		}
 
@@ -236,7 +236,7 @@ int dlhist_open() {
 
 	if (entries * HE_SZ > st.st_size - offset) {
 		fprintf(stderr,
-			"dlhist_open: file truncated. "
+			"proc_cache_open: file truncated. "
 			"expected atleast '%lu' bytes, got '%lu'\n",
 			entries * HE_SZ, st.st_size - offset);
 		goto error;
@@ -255,7 +255,7 @@ error:
 	return ret;
 }
 
-int dlhist_lookup(const char *url) {
+int proc_cache_lookup(const char *url) {
 
 	if (table_size) {
 		struct hash_entry *he = lookup(url);
@@ -264,7 +264,7 @@ int dlhist_lookup(const char *url) {
 	return 0;
 }
 
-void dlhist_update(const char *url) {
+void proc_cache_update(const char *url) {
 
 	struct hash_entry *he;
 
@@ -283,7 +283,7 @@ void dlhist_update(const char *url) {
 	}
 }
 
-void dlhist_purge(unsigned int timestamp) {
+void proc_cache_purge(unsigned int timestamp) {
 
 	unsigned int i, t = 0, now = time(NULL);
 
@@ -301,7 +301,7 @@ void dlhist_purge(unsigned int timestamp) {
 	resize_table();
 }
 
-void dlhist_flush() {
+void proc_cache_flush() {
 
 	int i;
 	struct header hdr;
@@ -339,9 +339,9 @@ void dlhist_flush() {
 	commit_lock(&lock);
 }
 
-void dlhist_close() {
+void proc_cache_close() {
 
-	dlhist_flush();
+	proc_cache_flush();
 
 	release_lock(&lock);
 
