@@ -68,7 +68,7 @@ static unsigned hash(const char *s) {
 
 	unsigned h;
 
-        for(h = 0; *s; s++)
+	for(h = 0; *s; s++)
 		h = ((unsigned)*s) + (h << 6) + (h << 16) - h;
         return h;
 }
@@ -297,7 +297,7 @@ static int path_cmp(const char *a, const char *b) {
 
 	if (stat(a, &sa) < 0 || stat(b, &sb) < 0)
 		return 0;
-	return sa.st_dev == sb.st_dev &&
+	return  sa.st_dev == sb.st_dev &&
 		sa.st_ino == sb.st_ino;
 }
 
