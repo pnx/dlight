@@ -25,24 +25,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <openssl/sha.h>
 #include <arpa/inet.h>
+#include "sha1_io.h"
 #include "cconf.h"
 
 /* we count NULL as part of the string ondisk */
 #define strsize(str) (strlen(str) + 1)
-
-static int sha1_write(SHA_CTX *ctx, int fd, void *buf, size_t size) {
-
-	SHA1_Update(ctx, buf, size);
-	return write(fd, buf, size);
-}
-
-static void write_int(SHA_CTX *ctx, int fd, int val) {
-
-	val = htonl(val);
-	sha1_write(ctx, fd, &val, sizeof val);
-}
 
 static void* read_entry_nr(void *buf, unsigned int *out) {
 
@@ -217,7 +205,7 @@ int cconf_write(int fd, struct cconf *c) {
 	lseek(fd, sizeof(hdr), SEEK_SET);
 
 	/* put number of targets */
-	write_int(&ctx, fd, c->nr);
+	sha1_write_int(&ctx, fd, c->nr);
 
 	for(i = 0; i < c->nr; i++) {
 		int j;
@@ -229,7 +217,7 @@ int cconf_write(int fd, struct cconf *c) {
 		sha1_write(&ctx, fd, target->src, strsize(target->src));
 
 		/* write number of filters */
-		write_int(&ctx, fd, target->nr);
+		sha1_write_int(&ctx, fd, target->nr);
 
 		for(j=0; j < target->nr; j++) {
 			struct filter *f = &target->filter[j];
