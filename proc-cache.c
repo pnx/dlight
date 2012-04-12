@@ -28,16 +28,13 @@
 #include <fcntl.h>
 #include <time.h>
 #include "env.h"
+#include "hash.h"
 #include "lockfile.h"
 #include "proc-cache.h"
 
 /* \175 D P C */
 #define SIGNATURE 0xAF445043
 #define STORAGE_FILE "proc-cache"
-
-#define TABLE_MIN_SIZE 128
-
-#define HASH_TABLE_LOAD(c, s) ((double) (c) / ((s) ? (s) : 1))
 
 struct header {
 	unsigned int signature;
@@ -54,18 +51,13 @@ union hash {
  * NOTE: be sure to change this constant if the struct's size changes.
  */
 #define HE_SZ (sizeof(union hash) + sizeof(unsigned))
-struct hash_entry {
+struct proc_cache_entry {
 	union hash   hash;
 	unsigned int time;
 };
 
-#define he_empty(x) (!(x) || (x)->hash.index == 0)
-
 static struct lockfile lock = LOCKFILE_INIT;
-
-static struct hash_entry *table;
-static unsigned int table_size;
-static unsigned int table_count;
+static struct hash_table table = HASH_TABLE_INIT;
 
 static void hash(union hash *h, const char *s) {
 
@@ -84,110 +76,41 @@ static void hash(union hash *h, const char *s) {
 	SHA1((unsigned char *)s, n, h->sha1);
 }
 
-static struct hash_entry* translate(union hash *he) {
-
-	unsigned int offset = he->index % table_size;
-
-	/* linear probing */
-	while(!he_empty(table + offset)) {
-		if (!memcmp(table[offset].hash.sha1, he->sha1, 20))
-			break;
-		offset = (offset + 1) % table_size;
-	}
-	return table + offset;
-}
-
-static struct hash_entry* lookup(const char *key) {
+static struct proc_cache_entry* lookup(const char *key) {
 
 	union hash h;
 	hash(&h, key);
-	return translate(&h);
+	return hash_lookup(&table, h.index);
 }
 
-static inline void he_set(struct hash_entry *he, const char *key) {
+static void he_insert(struct proc_cache_entry *entry) {
 
-	if (!he_empty(he))
-		return;
-	hash(&he->hash, key);
-	table_count++;
-}
+	struct proc_cache_entry *dest;
 
-static int he_insert(struct hash_entry *he) {
-
-	struct hash_entry *dest = translate(&he->hash);
-
-	if (he_empty(dest)) {
-		memcpy(dest, he, sizeof(*he));
-		table_count++;
-		return 1;
+	dest = hash_insert(&table, entry->hash.index, entry);
+	if (dest) {
+		memcpy(dest, entry, sizeof(*entry));
+		free(entry);
 	}
-	return 0;
-}
-
-static void he_remove(struct hash_entry *he) {
-
-	memset(he, 0, sizeof(*he));
-	table_count--;
-}
-
-static unsigned calculate_size(unsigned count) {
-
-	/*
-	 * set size to a load factor that is in the
-	 * middle in the valid range.
-	 */
-	unsigned size = count / 0.625;
-	if (size < TABLE_MIN_SIZE)
-		size = TABLE_MIN_SIZE;
-	return size;
-}
-
-static void resize_table() {
-
-	double load;
-	unsigned int i, old_size = table_size;
-	struct hash_entry *old = table;
-
-	load = HASH_TABLE_LOAD(table_count, table_size);
-
-	/* check if resize should be done */
-	if ((load < 0.5 && table_size <= TABLE_MIN_SIZE) ||
-		(load >= 0.5 && load <= 0.75))
-		return;
-
-	table_size = calculate_size(table_count);
-
-	table_count = 0;
-	table = calloc(sizeof(*table), table_size);
-
-	for(i=0; i < old_size; i++) {
-		struct hash_entry *he = old + i;
-		if (!he_empty(he))
-			he_insert(he);
-	}
-	free(old);
 }
 
 static void build_table(const char *buf, size_t entries) {
 
 	size_t i, offset = 0;
 
-	table_size = calculate_size(entries);
-	table = calloc(sizeof(*table), table_size);
-
 	for(i=0; i < entries; i++) {
-		struct hash_entry entry;
+		struct proc_cache_entry *entry = calloc(1, sizeof(*entry));
 
-		memcpy(&entry.hash, buf + offset, sizeof(entry.hash));
-		offset += sizeof(entry.hash);
+		memcpy(&entry->hash, buf + offset, sizeof(entry->hash));
+		offset += sizeof(entry->hash);
 
-		memcpy(&entry.time, buf + offset, sizeof(entry.time));
-		offset += sizeof(entry.time);
+		memcpy(&entry->time, buf + offset, sizeof(entry->time));
+		offset += sizeof(entry->time);
 
-		entry.hash.index = ntohl(entry.hash.index);
-		entry.time = ntohl(entry.time);
+		entry->hash.index = ntohl(entry->hash.index);
+		entry->time = ntohl(entry->time);
 
-		he_insert(&entry);
+		he_insert(entry);
 	}
 }
 
@@ -257,48 +180,41 @@ error:
 
 int proc_cache_lookup(const char *url) {
 
-	if (table_size) {
-		struct hash_entry *he = lookup(url);
-		return !he_empty(he);
-	}
-	return 0;
+	return lookup(url) != NULL;
 }
 
 void proc_cache_update(const char *url) {
 
-	struct hash_entry *he;
+	struct proc_cache_entry *entry = lookup(url);
 
-	if (table_size < 1)
-		return;
-
-	/*
-	 * set time and key before resize,
-	 * hash_entry pointer is invalid after that operation.
-	 */
-	he = lookup(url);
-	he->time = time(NULL);
-	if (he_empty(he)) {
-		he_set(he, url);
-		resize_table();
+	if (!entry) {
+		entry = calloc(1, sizeof(*entry));
+		hash(&entry->hash, url);
+		he_insert(entry);
 	}
+	entry->time = time(NULL);
 }
 
 void proc_cache_purge(unsigned int timestamp) {
 
-	unsigned int i, t = 0, now = time(NULL);
+	unsigned int i, t, now = time(NULL);
 
 	if (now < timestamp)
 		return;
 
 	t = now - timestamp;
-	for(i=0; i < table_size; i++) {
-		struct hash_entry *entry = table + i;
+	for(i=0; i < table.size; i++) {
+		struct proc_cache_entry *entry = hash_entry(&table, i);
 
-		if (!he_empty(entry) && entry->time <= t)
-			he_remove(entry);
+		if (!entry)
+			continue;
+
+		if (entry->time <= t) {
+			entry = hash_remove(&table, entry->hash.index);
+			if (entry)
+				free(entry);
+		}
 	}
-
-	resize_table();
 }
 
 void proc_cache_flush() {
@@ -307,24 +223,21 @@ void proc_cache_flush() {
 	struct header hdr;
 	int fd = lock.fd;
 
-	if (table_size < 1)
+	if (table.size < 1)
 		return;
-
-	ftruncate(fd, 0);
-	lseek(fd, 0, SEEK_SET);
 
 	/* Write header */
 	hdr.signature = htonl(SIGNATURE);
 	hdr.version = htonl(1);
-	hdr.entries = htonl(table_count);
+	hdr.entries = htonl(table.count);
 
 	write(fd, &hdr, sizeof(hdr));
 
 	/* Write hash entries */
-	for(i=0; i < table_size; i++) {
-		struct hash_entry ondisk, *entry = table + i;
+	for(i=0; i < table.size; i++) {
+		struct proc_cache_entry ondisk, *entry = hash_entry(&table, i);
 
-		if (he_empty(entry))
+		if (!entry)
 			continue;
 
 		memcpy(&ondisk.hash, &entry->hash, 20);
@@ -341,12 +254,16 @@ void proc_cache_flush() {
 
 void proc_cache_close() {
 
+	int i;
+
 	proc_cache_flush();
 
 	release_lock(&lock);
 
-	if (table)
-		free(table);
-	table = NULL;
-	table_count = table_size = 0;
+	for(i=0; i < table.size; i++) {
+		struct proc_cache_entry *entry = hash_entry(&table, i);
+		if (entry)
+			free(entry);
+	}
+	hash_free(&table);
 }
