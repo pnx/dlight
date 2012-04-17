@@ -28,8 +28,6 @@ void proc_cache_update(const char *url);
 
 void proc_cache_purge(unsigned int timestamp);
 
-void proc_cache_flush();
-
 void proc_cache_close();
 
 #endif /* PROC_CACHE_H */

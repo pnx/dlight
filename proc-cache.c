@@ -217,7 +217,7 @@ void proc_cache_purge(unsigned int timestamp) {
 	}
 }
 
-void proc_cache_flush() {
+void proc_cache_close() {
 
 	int i;
 	struct header hdr;
@@ -246,24 +246,14 @@ void proc_cache_flush() {
 
 		write(fd, &ondisk.hash, 20);
 		write(fd, &ondisk.time, sizeof(ondisk.time));
+
+		free(entry);
 	}
+
+	hash_free(&table);
 
 	/* Flush it to the real file */
 	commit_lock(&lock);
-}
-
-void proc_cache_close() {
-
-	int i;
-
-	proc_cache_flush();
 
 	release_lock(&lock);
-
-	for(i=0; i < table.size; i++) {
-		struct proc_cache_entry *entry = hash_entry(&table, i);
-		if (entry)
-			free(entry);
-	}
-	hash_free(&table);
 }
