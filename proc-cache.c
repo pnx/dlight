@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include "env.h"
+#include "llist.h"
 #include "hash.h"
 #include "lockfile.h"
 #include "proc-cache.h"
@@ -54,6 +55,7 @@ union hash {
 struct proc_cache_entry {
 	union hash   hash;
 	unsigned int time;
+	struct llist list;
 };
 
 static struct lockfile lock = LOCKFILE_INIT;
@@ -78,19 +80,53 @@ static void hash(union hash *h, const char *s) {
 
 static struct proc_cache_entry* lookup(const char *key) {
 
+	struct proc_cache_entry *entry;
 	union hash h;
+
 	hash(&h, key);
-	return hash_lookup(&table, h.index);
+
+	entry = hash_lookup(&table, h.index);
+	if (entry) {
+		struct llist *it;
+		struct proc_cache_entry *e;
+
+		llist_foreach(it, entry->list.next) {
+			e = llist_entry(it, struct proc_cache_entry, list);
+
+			if (!memcmp(e->hash.sha1, h.sha1, 20))
+				return e;
+		}
+	}
+	return NULL;
 }
 
 static void he_insert(struct proc_cache_entry *entry) {
 
-	struct proc_cache_entry *dest;
+	struct proc_cache_entry *dest, *s;
 
-	dest = hash_insert(&table, entry->hash.index, entry);
+	s = calloc(1, sizeof(*s));
+
+	dest = hash_insert(&table, entry->hash.index, s);
 	if (dest) {
-		memcpy(dest, entry, sizeof(*entry));
-		free(entry);
+		struct llist *it;
+		struct proc_cache_entry *e;
+
+		free(s);
+
+		llist_foreach(it, dest->list.next) {
+
+			e = llist_entry(it, struct proc_cache_entry, list);
+
+			if (!memcmp(entry->hash.sha1, e->hash.sha1, 20)) {
+				free(entry);
+				return;
+			}
+		}
+
+		llist_add(&dest->list, &entry->list);
+	} else {
+		s->hash.index = entry->hash.index;
+		llist_add(&s->list, &entry->list);
 	}
 }
 
@@ -204,17 +240,38 @@ void proc_cache_purge(unsigned int timestamp) {
 
 	t = now - timestamp;
 	for(i=0; i < table.size; i++) {
-		struct proc_cache_entry *entry = hash_entry(&table, i);
+		struct llist *it, *n;
+		struct proc_cache_entry *e, *entry = hash_entry(&table, i);
 
 		if (!entry)
 			continue;
 
-		if (entry->time <= t) {
-			entry = hash_remove(&table, entry->hash.index);
-			if (entry)
-				free(entry);
+		llist_foreach_safe(it, n, entry->list.next) {
+			e = llist_entry(it, struct proc_cache_entry, list);
+			if (e->time <= t) {
+				llist_del(&entry->list, it);
+				free(e);
+			}
+		}
+
+		if (llist_empty(&entry->list)) {
+			e = hash_remove(&table, entry->hash.index);
+			if (e)
+				free(e);
 		}
 	}
+}
+
+static void write_entry(int fd, struct proc_cache_entry *entry) {
+
+	struct proc_cache_entry ondisk;
+
+	memcpy(&ondisk.hash, &entry->hash, 20);
+	ondisk.hash.index = htonl(entry->hash.index);
+	ondisk.time = htonl(entry->time);
+
+	write(fd, &ondisk.hash, 20);
+	write(fd, &ondisk.time, sizeof(ondisk.time));
 }
 
 void proc_cache_close() {
@@ -226,34 +283,37 @@ void proc_cache_close() {
 	if (table.size < 1)
 		return;
 
-	/* Write header */
 	hdr.signature = htonl(SIGNATURE);
 	hdr.version = htonl(1);
-	hdr.entries = htonl(table.count);
+	hdr.entries = 0;
 
-	write(fd, &hdr, sizeof(hdr));
+	ftruncate(fd, 0);
+	lseek(fd, sizeof(hdr), SEEK_SET);
 
 	/* Write hash entries */
 	for(i=0; i < table.size; i++) {
-		struct proc_cache_entry ondisk, *entry = hash_entry(&table, i);
+		struct llist *it;
+		struct proc_cache_entry *entry = hash_entry(&table, i);
 
 		if (!entry)
 			continue;
 
-		memcpy(&ondisk.hash, &entry->hash, 20);
-		ondisk.hash.index = htonl(entry->hash.index);
-		ondisk.time = htonl(entry->time);
-
-		write(fd, &ondisk.hash, 20);
-		write(fd, &ondisk.time, sizeof(ondisk.time));
-
-		free(entry);
+		llist_foreach(it, entry->list.next) {
+			write_entry(fd, llist_entry(it, struct proc_cache_entry, list));
+			hdr.entries++;
+		}
 	}
 
-	hash_free(&table);
+	hdr.entries = htonl(hdr.entries);
+
+	/* Write header */
+	lseek(fd, 0, SEEK_SET);
+	write(fd, &hdr, sizeof(hdr));
 
 	/* Flush it to the real file */
 	commit_lock(&lock);
 
 	release_lock(&lock);
+
+	hash_free(&table);
 }
