@@ -53,14 +53,16 @@ static void process_items(rss_t rss, struct target *t) {
 				}
 			}
 
-			/* save file to disk. */
+			/* At this point, mark the item as downloaded.
+			   Even if we encounter an error while saving to disk. */
+			dlhist_mark(item.title, filter->dest);
+
 			if (write_http_file(file, filter->dest) < 0)
 				continue;
 
 			printf("Downloaded: %s (%s) to %s\n",
 				item.title, item.link, filter->dest);
 
-			dlhist_mark(item.title, filter->dest);
 			proc_cache_update(item.link);
 		}
 
