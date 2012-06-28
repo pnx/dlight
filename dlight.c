@@ -62,9 +62,9 @@ static void process_items(rss_t rss, struct target *t) {
 
 			printf("Downloaded: %s (%s) to %s\n",
 				item.title, item.link, filter->dest);
-
-			proc_cache_update(item.link);
 		}
+
+		proc_cache_update(item.link);
 
 		http_free_file(file);
 	}
