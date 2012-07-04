@@ -48,6 +48,9 @@ union hash {
 	unsigned char sha1[20];
 };
 
+/* hash entry flags */
+#define HE_FLAG_VALID (1 << 0)
+
 /*
  * NOTE: be sure to change this constant if the struct's size changes.
  */
@@ -55,8 +58,11 @@ union hash {
 struct proc_cache_entry {
 	union hash   hash;
 	unsigned int time;
+	unsigned int flags;
 	struct llist list;
 };
+
+#define he_empty(x) (!(x) || !((x)->flags & HE_FLAG_VALID))
 
 static struct lockfile lock = LOCKFILE_INIT;
 static struct hash_table table = HASH_TABLE_INIT;
@@ -93,7 +99,7 @@ static struct proc_cache_entry* lookup(const char *key) {
 		llist_foreach(it, entry->list.next) {
 			e = llist_entry(it, struct proc_cache_entry, list);
 
-			if (!memcmp(e->hash.sha1, h.sha1, 20))
+			if (!he_empty(e) && !memcmp(e->hash.sha1, h.sha1, 20))
 				return e;
 		}
 	}
@@ -102,32 +108,26 @@ static struct proc_cache_entry* lookup(const char *key) {
 
 static void he_insert(struct proc_cache_entry *entry) {
 
-	struct proc_cache_entry *dest, *s;
+	struct proc_cache_entry *dest;
 
-	s = calloc(1, sizeof(*s));
-
-	dest = hash_insert(&table, entry->hash.index, s);
+	dest = hash_insert(&table, entry->hash.index, entry);
 	if (dest) {
 		struct llist *it;
 		struct proc_cache_entry *e;
 
-		free(s);
-
-		llist_foreach(it, dest->list.next) {
-
+		llist_foreach(it, &dest->list) {
 			e = llist_entry(it, struct proc_cache_entry, list);
 
-			if (!memcmp(entry->hash.sha1, e->hash.sha1, 20)) {
+			if (!he_empty(e) &&
+				!memcmp(e->hash.sha1, entry->hash.sha1, 20)) {
 				free(entry);
 				return;
 			}
 		}
-
 		llist_add(&dest->list, &entry->list);
-	} else {
-		s->hash.index = entry->hash.index;
-		llist_add(&s->list, &entry->list);
 	}
+
+	entry->flags |= HE_FLAG_VALID;
 }
 
 static void build_table(const char *buf, size_t entries) {
@@ -240,24 +240,16 @@ void proc_cache_purge(unsigned int timestamp) {
 
 	t = now - timestamp;
 	for(i=0; i < table.size; i++) {
-		struct llist *it, *n;
+		struct llist *it;
 		struct proc_cache_entry *e, *entry = hash_entry(&table, i);
 
 		if (!entry)
 			continue;
 
-		llist_foreach_safe(it, n, entry->list.next) {
+		llist_foreach(it, &entry->list) {
 			e = llist_entry(it, struct proc_cache_entry, list);
-			if (e->time <= t) {
-				llist_del(&entry->list, it);
-				free(e);
-			}
-		}
-
-		if (llist_empty(&entry->list)) {
-			e = hash_remove(&table, entry->hash.index);
-			if (e)
-				free(e);
+			if (!he_empty(e) && e->time <= t)
+				e->flags &= ~HE_FLAG_VALID;
 		}
 	}
 }
@@ -298,9 +290,14 @@ void proc_cache_close() {
 		if (!entry)
 			continue;
 
-		llist_foreach(it, entry->list.next) {
-			write_entry(fd, llist_entry(it, struct proc_cache_entry, list));
-			hdr.entries++;
+		llist_foreach(it, &entry->list) {
+			struct proc_cache_entry *e;
+
+			e = llist_entry(it, struct proc_cache_entry, list);
+			if (!he_empty(e)) {
+				write_entry(fd, e);
+				hdr.entries++;
+			}
 		}
 	}
 
