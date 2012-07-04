@@ -67,7 +67,7 @@ char* buffer_cstr_release(struct buffer *b) {
 		} else {
 			ret = (char *) b->block;
 		}
-		ret[b->len + 1] = '\0';
+		ret[b->len] = '\0';
 	} else {
 		ret = calloc(1, 1);
 	}
