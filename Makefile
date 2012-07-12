@@ -1,7 +1,7 @@
 
 CC = gcc
 LDFLAGS = -lxml2 -lcurl -lpcre
-CFLAGS = -g -Wall -O2 -I/usr/include/libxml2
+CFLAGS = -g -Wall -I/usr/include/libxml2
 
 PROGRAMS = dlight dlight-compile dlight-read-config dlight-filter-check
 
