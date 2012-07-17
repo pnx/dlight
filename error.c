@@ -38,12 +38,13 @@ void usage(const char *msg, ...) {
 	exit(EXIT_FAILURE);
 }
 
-void warn(const char *msg, ...) {
+int warn(const char *msg, ...) {
 
 	va_list vl;
 	va_start(vl, msg);
 	print_e(stderr, "warning", msg, vl);
 	va_end(vl);
+	return -1;
 }
 
 void fatal(const char *msg, ...) {

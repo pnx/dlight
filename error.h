@@ -25,7 +25,7 @@
 
 void usage(const char *msg, ...);
 
-void warn(const char *msg, ...);
+int warn(const char *msg, ...);
 
 void fatal(const char *msg, ...);
 
