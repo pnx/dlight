@@ -108,7 +108,7 @@ int buffer_write(struct buffer *b, const char *filename) {
 
 	fd = open(filename, O_WRONLY | O_CREAT | O_EXCL, 0664);
 	if (fd < 0)
-		return error("%s: %s", filename, strerror(errno));
+		return warn("%s: %s", filename, strerror(errno));
 
 	rc = write(fd, b->block, b->len);
 	close(fd);
