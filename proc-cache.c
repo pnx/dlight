@@ -284,13 +284,13 @@ void proc_cache_close() {
 
 	/* Write hash entries */
 	for(i=0; i < table.size; i++) {
-		struct llist *it;
+		struct llist *it, *n;
 		struct proc_cache_entry *entry = hash_entry(&table, i);
 
 		if (!entry)
 			continue;
 
-		llist_foreach(it, &entry->list) {
+		llist_foreach_safe(it, n, &entry->list) {
 			struct proc_cache_entry *e;
 
 			e = llist_entry(it, struct proc_cache_entry, list);
@@ -298,8 +298,14 @@ void proc_cache_close() {
 				write_entry(fd, e);
 				hdr.entries++;
 			}
+
+			/* free this entry in the linked list. */
+			free(e);
 		}
 	}
+
+	/* Now, free the hash table. */
+	hash_free(&table);
 
 	hdr.entries = htonl(hdr.entries);
 
@@ -311,6 +317,4 @@ void proc_cache_close() {
 	commit_lock(&lock);
 
 	release_lock(&lock);
-
-	hash_free(&table);
 }
