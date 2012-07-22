@@ -44,12 +44,12 @@ static void get_base() {
 
 const char* env_get_dir() {
 
-	if (!base) {
+	if (!base)
 		get_base();
-		if (mkdir(base, 0700) < 0 && errno != EEXIST) {
-			fatal("Unable to create '%s': %s\n",
-				base, strerror(errno));
-		}
+
+	if (mkdir(base, 0700) < 0 && errno != EEXIST) {
+		fatal("Unable to create '%s': %s\n",
+			base, strerror(errno));
 	}
 	return base;
 }
