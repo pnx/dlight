@@ -433,7 +433,7 @@ void dlhist_flush() {
 	commit_lock(&lock);
 	return;
 error:
-	error("dlhist_close: partial write\n");
+	error("dlhist_flush: partial write\n");
 }
 
 void dlhist_close() {
