@@ -265,7 +265,7 @@ int dlhist_open() {
 		hdr = (struct header *) buf;
 		if (hdr->signature != htonl(SIGNATURE) ||
 			hdr->version != htonl(1)) {
-			error("dlhist_open: Invalid header\n");
+			error("dlhist_open: Invalid header");
 			goto error;
 		}
 
@@ -433,7 +433,7 @@ void dlhist_flush() {
 	commit_lock(&lock);
 	return;
 error:
-	error("dlhist_flush: partial write\n");
+	error("dlhist_flush: partial write");
 }
 
 void dlhist_close() {
