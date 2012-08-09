@@ -37,7 +37,7 @@ void buffer_init(struct buffer *b) {
 
 void buffer_expand(struct buffer *b, size_t len) {
 
-	if (b->len + len < b->size)
+	if (b->len + len <= b->size)
 		return;
 	if (!b->size)
 		b->block = NULL;
