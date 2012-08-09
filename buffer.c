@@ -52,7 +52,7 @@ void buffer_expand(struct buffer *b, size_t len) {
 char* buffer_cstr(struct buffer *b) {
 
 	buffer_expand(b, 1);
-	b->block[b->len + 1] = '\0';
+	b->block[b->len] = '\0';
 
 	return (char*) b->block;
 }
