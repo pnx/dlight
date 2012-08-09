@@ -29,6 +29,12 @@
 
 static char *base = NULL;
 
+static void free_base() {
+
+	if (base)
+		free(base);
+}
+
 static void get_base() {
 
 	struct buffer buf = BUFFER_INIT;
@@ -40,6 +46,7 @@ static void get_base() {
 	buffer_append_str(&buf, "/.dlight");
 
 	base = buffer_cstr_release(&buf);
+	atexit(free_base);
 }
 
 const char* env_get_dir() {
