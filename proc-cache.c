@@ -44,7 +44,7 @@ struct header {
 };
 
 union hash {
-	unsigned int  index;
+	hash_t         index;
 	unsigned char sha1[20];
 };
 

@@ -22,12 +22,10 @@
 
 #include <stddef.h>
 
-struct hash_entry {
-	unsigned hash;
-};
+typedef unsigned int hash_t;
 
 struct hash_table {
-	struct hash_entry **ptr;
+	hash_t **ptr;
 	unsigned size;
 	unsigned count;
 };
@@ -38,16 +36,16 @@ struct hash_table {
 	((void*) *((char**) (t)->ptr + (i)))
 
 /* general hash functions */
-unsigned hash_sdbm(const char *s);
+hash_t hash_sdbm(const char *s);
 
 void hash_init(struct hash_table *table);
 
 void hash_free(struct hash_table *table);
 
-void* hash_lookup(const struct hash_table *t, unsigned hash);
+void* hash_lookup(const struct hash_table *t, hash_t hash);
 
-void* hash_insert(struct hash_table *t, unsigned hash, void *ptr);
+void* hash_insert(struct hash_table *t, hash_t hash, void *ptr);
 
-void* hash_remove(struct hash_table *t, unsigned hash);
+void* hash_remove(struct hash_table *t, hash_t hash);
 
 #endif /* HASH_H */
