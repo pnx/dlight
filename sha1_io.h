@@ -20,13 +20,23 @@
 #ifndef SHA1_IO_H
 #define SHA1_IO_H
 
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <openssl/sha.h>
 
-int sha1_write(SHA_CTX *ctx, int fd, void *buf, size_t size);
+inline int sha1_write(SHA_CTX *ctx, int fd, void *buf, size_t size) {
+
+	SHA1_Update(ctx, buf, size);
+	return write(fd, buf, size);
+}
 
 /* This function makes sure that the integer is in
    network byte order before it is written to disk
    by 'sha1_write'. */
-int sha1_write_int(SHA_CTX *ctx, int fd, int val);
+inline int sha1_write_int(SHA_CTX *ctx, int fd, int val) {
+
+	val = htonl(val);
+	return sha1_write(ctx, fd, &val, sizeof val);
+}
 
 #endif /* SHA1_IO_H */
