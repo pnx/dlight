@@ -23,12 +23,12 @@
 
 #define TABLE_MIN_SIZE 128
 
-unsigned hash_sdbm(const char *s) {
+hash_t hash_sdbm(const char *s) {
 
-	unsigned h;
+	hash_t h;
 
 	for(h = 0; *s; s++)
-		h = ((unsigned)*s) + (h << 6) + (h << 16) - h;
+		h = ((hash_t)*s) + (h << 6) + (h << 16) - h;
         return h;
 }
 
@@ -46,33 +46,33 @@ void hash_free(struct hash_table *table) {
 	hash_init(table);
 }
 
-static struct hash_entry** lookup(const struct hash_table *t, unsigned hash) {
+static hash_t** lookup(const struct hash_table *t, hash_t hash) {
 
 	unsigned i = hash % t->size;
-	struct hash_entry **table = t->ptr;
+	hash_t **table = t->ptr;
 
 	while(table[i]) {
-		if (table[i]->hash == hash)
+		if (*table[i] == hash)
 			break;
 		i = (i + 1) % t->size;
 	}
 	return table + i;
 }
 
-void* hash_lookup(const struct hash_table *t, unsigned hash) {
+void* hash_lookup(const struct hash_table *t, hash_t hash) {
 
 	if (t->size < 1)
 		return NULL;
 	return *lookup(t, hash);
 }
 
-static void* insert(struct hash_table *t, unsigned hash, void *ptr) {
+static void* insert(struct hash_table *t, hash_t hash, void *ptr) {
 
-	struct hash_entry **dest = lookup(t, hash);
+	hash_t **dest = lookup(t, hash);
 
 	if (!*dest) {
 		*dest = ptr;
-		(*dest)->hash = hash;
+		**dest = hash;
 		t->count++;
 		return NULL;
 	}
@@ -92,7 +92,7 @@ static unsigned needs_resize(const struct hash_table *t) {
 static void resize(struct hash_table *t) {
 
 	unsigned int i, old_size = t->size;
-	struct hash_entry **old = t->ptr;
+	hash_t **old = t->ptr;
 
 	/*
 	 * set size to a load factor that is in the
@@ -107,24 +107,24 @@ static void resize(struct hash_table *t) {
 
 	if (old) {
 		for(i=0; i < old_size; i++) {
-			struct hash_entry *entry = old[i];
+			hash_t *entry = old[i];
 			if (entry)
-				insert(t, entry->hash, entry);
+				insert(t, *entry, entry);
 		}
 		free(old);
 	}
 }
 
-void* hash_insert(struct hash_table *t, unsigned hash, void *ptr) {
+void* hash_insert(struct hash_table *t, hash_t hash, void *ptr) {
 
 	if (needs_resize(t))
 		resize(t);
 	return insert(t, hash, ptr);
 }
 
-void* hash_remove(struct hash_table *t, unsigned hash) {
+void* hash_remove(struct hash_table *t, hash_t hash) {
 
-	struct hash_entry **dest = lookup(t, hash);
+	hash_t **dest = lookup(t, hash);
 
 	if (*dest) {
 		void *ptr = *dest;
