@@ -5,6 +5,10 @@ CFLAGS = -g -Wall -I/usr/include/libxml2
 
 PROGRAMS = dlight dlight-compile dlight-read-config dlight-filter-check
 
+ifeq ($(DEBUG), 1)
+	CFLAGS +=-D__DEBUG__
+endif
+
 all : $(PROGRAMS)
 
 install : $(PROGRAMS)
