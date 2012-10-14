@@ -15,7 +15,7 @@ install : $(PROGRAMS)
 	cp $^ $(HOME)/bin/
 
 dlight : dlight.o buffer.o env.o http.o rss.o lockfile.o filter.o cconf.o \
-	proc-cache.o dlhist.o hash.o error.o
+	proc-cache.o dlhist.o hash.o xalloc.o error.o
 dlight-compile : compile.o buffer.o env.o lockfile.o filter.o cconf.o \
 	error.o
 dlight-read-config : read-config.o buffer.o env.o cconf.o error.o

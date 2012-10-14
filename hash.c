@@ -19,6 +19,7 @@
  */
 
 #include "hash.h"
+#include "xalloc.h"
 #include <stdlib.h>
 
 #define TABLE_MIN_SIZE 128
@@ -42,7 +43,7 @@ void hash_init(struct hash_table *table) {
 void hash_free(struct hash_table *table) {
 
 	if (table->ptr)
-		free(table->ptr);
+		xfree(table->ptr);
 	hash_init(table);
 }
 
@@ -103,7 +104,7 @@ static void resize(struct hash_table *t) {
 		t->size = TABLE_MIN_SIZE;
 
 	t->count = 0;
-	t->ptr = calloc(sizeof(t->ptr), t->size);
+	t->ptr = xmallocz(sizeof(t->ptr) * t->size);
 
 	if (old) {
 		for(i=0; i < old_size; i++) {
@@ -111,7 +112,7 @@ static void resize(struct hash_table *t) {
 			if (entry)
 				insert(t, *entry, entry);
 		}
-		free(old);
+		xfree(old);
 	}
 }
 
