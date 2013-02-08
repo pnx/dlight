@@ -29,6 +29,7 @@
 #include "env.h"
 #include "error.h"
 #include "lockfile.h"
+#include "utils.h"
 #include "dlhist.h"
 
 /* \195 D L H */
@@ -291,16 +292,6 @@ error:
 	return ret;
 }
 
-static int path_cmp(const char *a, const char *b) {
-
-	struct stat sa, sb;
-
-	if (stat(a, &sa) < 0 || stat(b, &sb) < 0)
-		return 0;
-	return  sa.st_dev == sb.st_dev &&
-		sa.st_ino == sb.st_ino;
-}
-
 int dlhist_lookup(const char *title, const char *dest) {
 
 	struct hash_entry *he;
@@ -313,7 +304,7 @@ int dlhist_lookup(const char *title, const char *dest) {
 		int i;
 		for(i=0; i < he->dest_nr; i++) {
 
-			if (path_cmp(he->dest[i].path, dest))
+			if (file_cmp(he->dest[i].path, dest))
 				return 1;
 		}
 	}
