@@ -24,105 +24,114 @@
 
 static unsigned line_nr = 1;
 
-static int next_char(FILE *fd) {
+static int lx_whitespace(int c) {
 
-	int c, comment = 0;
+	return c != '\n' && isspace(c);
+}
 
-	do {
+static void lx_ungetc(int c, FILE *fd) {
+
+	if (c == '\n')
+		line_nr--;
+	ungetc(c, fd);
+}
+
+static int lx_get_ch(FILE *fd) {
+
+	int c = fgetc(fd);
+
+	if (c == '\r') {
 		c = fgetc(fd);
-		if (c == '\r') {
-			c = fgetc(fd);
-			if (c != '\n') {
-				ungetc(c, fd);
-				c = '\r';
-			}
+		if (c != '\n') {
+			ungetc(c, fd);
+			c = '\r';
 		}
-
-		if (c == '\n') {
-			line_nr++;
-			if (comment)
-				comment = 0;
-		} else if (c == '#') {
-			comment = 1;
-		}
-	} while(comment);
-
+	}
+	if (c == '\n')
+		line_nr++;
 	return c;
 }
 
-enum lexer_state {
-	LEX_STATE_NORMAL,
-	LEX_STATE_STRING,
-};
+static int lx_get_ch_tok(FILE *fd) {
+
+	int c, comment = 0;
+
+	while((c = lx_get_ch(fd)) != EOF) {
+
+		if (comment) {
+			if (c == '\n') {
+				lx_ungetc(c, fd);
+				comment = 0;
+			}
+		} else if (c == '#') {
+			comment = 1;
+		} else if (!lx_whitespace(c)) {
+			break;
+		}
+	}
+	return c;
+}
+
+/*
+ * Helper function to analyze the DEFINE token.
+ * This functions expects that the last character read from
+ * the filedescriptor is '<'.
+ */
+static token_type lx_analyze_define(FILE *fd) {
+
+	int c = lx_get_ch_tok(fd);
+
+	if (c != '-') {
+		lx_ungetc(c, fd);
+		return NONE;
+	}
+	return DEFINE;
+}
+
+/*
+ * Helper function to match variable string tokens.
+ * This can be specific strings that has a special meaning to
+ * the language like keywords, integers etc.
+ */
+static token_type lx_analyze_var_type(FILE *fd) {
+
+	int c = lx_get_ch_tok(fd);
+
+	printf("Variable type '%c'\n", c);
+	return STRING;
+}
 
 token_t lexer_getnext(FILE *fd) {
 
-	enum lexer_state state = LEX_STATE_NORMAL;
-	struct buffer buf = BUFFER_INIT;
-	static token_t prev = { NONE, 0 };
-	token_t ret = { NONE, line_nr };
+	token_t t = { NONE, line_nr , NULL };
+	int c;
 
-	if (prev.type != NONE) {
-		ret = prev;
-		prev.type = NONE;
-		prev.attr = 0;
-		return ret;
+	c = lx_get_ch_tok(fd);
+
+	switch(c) {
+	case EOF : t.type = EOI;
+		break;
+	case '\n' : t.type = EOL;
+		break;
+	case '\t' : t.type = TAB;
+		break;
+	case ',' : t.type = SEP;
+		break;
+	case '=' : t.type = ASSIGN;
+		break;
+	case '[' : t.type = LBRACKET;
+		break;
+	case ']' : t.type = RBRACKET;
+		break;
+	case '<' : t.type = lx_analyze_define(fd);
+		break;
 	}
 
-	for(;;) {
-		token_t t = { NONE, line_nr , NULL };
-		int c = next_char(fd);
-
-		switch(c) {
-		case EOF : t.type = EOI;
-			break;
-		case '\n' : t.type = EOL;
-			break;
-		case '\t' : t.type = TAB;
-			break;
-		case ',' : t.type = SEP;
-			break;
-		case '=' : t.type = ASSIGN;
-			break;
-		case '[' : t.type = LBRACKET;
-			break;
-		case ']' : t.type = RBRACKET;
-			break;
-		case '<' :
-			c = next_char(fd);
-			if (c == '-') {
-				t.type = DEFINE;
-				break;
-			}
-			ungetc(c, fd);
-			c = '<';
-		}
-
-		if (state == LEX_STATE_STRING) {
-			if (isspace(c) || t.type != NONE) {
-				ret.attr = buffer_cstr_release(&buf);
-				prev = t;
-				break;
-			}
-			if (c == '\\')
-				c = next_char(fd);
-			if (!(isalpha(c) || c == '_'))
-				ret.type = STRING;
-			buffer_append_ch(&buf, c);
-			continue;
-		}
-
-		if (t.type == NONE) {
-			if (!isspace(c)) {
-				ungetc(c, fd);
-				ret.type = ID;
-				state = LEX_STATE_STRING;
-			}
-			continue;
-		}
-		ret = t;
-		goto out;
+	/* Variable type (string, number, bool etc) */
+	if (t.type == NONE) {
+		lx_ungetc(c, fd);
+		t.type = lx_analyze_var_type(fd);
 	}
 
-out :	return ret;
+	return t;
 }
