@@ -24,9 +24,9 @@ void token_print(token_t token) {
 	printf("%i: %s", token.line_nr, token_type2str(token.type));
 
 	switch (token.type) {
-	case STRING :
-	case VAL :
-	case ID :
+	case TOKEN_STRING :
+	case TOKEN_VAL :
+	case TOKEN_ID :
 		if (token.attr)
 			printf(" [%s]", (char*)token.attr);
 	default: break;

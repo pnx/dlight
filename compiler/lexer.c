@@ -83,9 +83,9 @@ static token_type lx_analyze_define(FILE *fd) {
 
 	if (c != '-') {
 		lx_ungetc(c, fd);
-		return NONE;
+		return TOKEN_NONE;
 	}
-	return DEFINE;
+	return TOKEN_DEFINE;
 }
 
 /*
@@ -98,37 +98,37 @@ static token_type lx_analyze_var_type(FILE *fd) {
 	int c = lx_get_ch_tok(fd);
 
 	printf("Variable type '%c'\n", c);
-	return STRING;
+	return TOKEN_STRING;
 }
 
 token_t lexer_getnext(FILE *fd) {
 
-	token_t t = { NONE, line_nr , NULL };
+	token_t t = { TOKEN_NONE, line_nr , NULL };
 	int c;
 
 	c = lx_get_ch_tok(fd);
 
 	switch(c) {
-	case EOF : t.type = EOI;
+	case EOF : t.type = TOKEN_EOI;
 		break;
-	case '\n' : t.type = EOL;
+	case '\n' : t.type = TOKEN_EOL;
 		break;
-	case '\t' : t.type = TAB;
+	case '\t' : t.type = TOKEN_TAB;
 		break;
-	case ',' : t.type = SEP;
+	case ',' : t.type = TOKEN_SEP;
 		break;
-	case '=' : t.type = ASSIGN;
+	case '=' : t.type = TOKEN_ASSIGN;
 		break;
-	case '[' : t.type = LBRACKET;
+	case '[' : t.type = TOKEN_LBRACKET;
 		break;
-	case ']' : t.type = RBRACKET;
+	case ']' : t.type = TOKEN_RBRACKET;
 		break;
 	case '<' : t.type = lx_analyze_define(fd);
 		break;
 	}
 
 	/* Variable type (string, number, bool etc) */
-	if (t.type == NONE) {
+	if (t.type == TOKEN_NONE) {
 		lx_ungetc(c, fd);
 		t.type = lx_analyze_var_type(fd);
 	}

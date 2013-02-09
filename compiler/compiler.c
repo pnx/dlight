@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 	for(;;) {
 		token_t t = lexer_getnext(fd);
 
-		if (t.type == EOI)
+		if (t.type == TOKEN_EOI)
 			break;
 		token_print(t);
 	}

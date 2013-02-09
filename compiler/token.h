@@ -3,20 +3,20 @@
 #define TOKEN_H
 
 typedef enum {
-	NONE = 0,
-	NUM,		/* Numeric constant */
-	BOOL,		/* Boolean constant */
-	STRING, 	/* String */
-	ID,
-	SEP,
-	TAB,
-	ASSIGN, 	/* Assignment operator */
-	DEFINE,		/* Definition operator */
-	RBRACKET, 	/* ] */
-	LBRACKET, 	/* [ */
-	VAL,		/* Arbitrary value */
-	EOL, 		/* end-of-line */
-	EOI 		/* end-of-input */
+	TOKEN_NONE = 0,
+	TOKEN_NUM,	/* Numeric constant */
+	TOKEN_BOOL,	/* Boolean constant */
+	TOKEN_STRING, 	/* String */
+	TOKEN_ID,
+	TOKEN_SEP,
+	TOKEN_TAB,
+	TOKEN_ASSIGN, 	/* Assignment operator */
+	TOKEN_DEFINE,	/* Definition operator */
+	TOKEN_RBRACKET, /* ] */
+	TOKEN_LBRACKET, /* [ */
+	TOKEN_VAL,	/* Arbitrary value */
+	TOKEN_EOL, 	/* end-of-line */
+	TOKEN_EOI 	/* end-of-input */
 } token_type;
 
 extern const char *token_str_type[];
