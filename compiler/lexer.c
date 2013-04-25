@@ -125,13 +125,9 @@ token_t lexer_getnext(FILE *fd) {
 		break;
 	case '<' : t.type = lx_analyze_define(fd);
 		break;
-	}
-
-	/* Variable type (string, number, bool etc) */
-	if (t.type == TOKEN_NONE) {
+	default  :
 		lx_ungetc(c, fd);
 		t.type = lx_analyze_var_type(fd);
 	}
-
 	return t;
 }
