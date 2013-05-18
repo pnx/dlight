@@ -104,9 +104,7 @@ static token_type lx_analyze_var_type(FILE *fd) {
 token_t lexer_getnext(FILE *fd) {
 
 	token_t t = { TOKEN_NONE, line_nr , NULL };
-	int c;
-
-	c = lx_get_ch_tok(fd);
+	int c = lx_get_ch_tok(fd);
 
 	switch(c) {
 	case EOF : t.type = TOKEN_EOI;
