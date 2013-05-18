@@ -95,9 +95,19 @@ static token_type lx_analyze_define(FILE *fd) {
  */
 static token_type lx_analyze_var_type(FILE *fd) {
 
-	int c = lx_get_ch_tok(fd);
+	struct buffer buf = BUFFER_INIT;
+	char *str;
 
-	printf("Variable type '%c'\n", c);
+	for(;;) {
+		int c = lx_get_ch(fd);
+
+		if (!(isalnum(c) || c == '-'))
+			break;
+		buffer_append_ch(&buf, c);
+	}
+	str = buffer_cstr_release(&buf);
+
+	printf("Variable type '%s'\n", str);
 	return TOKEN_STRING;
 }
 
