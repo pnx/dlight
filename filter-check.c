@@ -20,13 +20,26 @@
 #include <stdio.h>
 #include "error.h"
 #include "filter.h"
+#include "version.h"
 
-const char *usagestr = "dlight-filter-check <pattern> <subject>";
+const char *usagestr =
+	"dlight-filter-check [ --help | -h | --version | -v ] "
+	"| [ <pattern> <subject> ]";
 
 int main(int argc, char **argv) {
 
-	if (argc < 3)
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+			usage(usagestr);
+		} else if (!strcmp(argv[1], "-v")
+			|| !strcmp(argv[1], "--version")) {
+			printf("Version: %s\n",
+				dlight_version_str);
+			return 0;
+		}
+	} else if (argc < 3) {
 		usage(usagestr);
+	}
 
 	if (!filter_check_syntax(argv[1]))
 		return 0;

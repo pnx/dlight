@@ -14,6 +14,7 @@
 #include "filter.h"
 #include "http.h"
 #include "rss.h"
+#include "version.h"
 
 #define PROC_CACHE_PURGE_INTERVAL (60*60*6) /* 6 hours (in seconds) */
 #define DLHIST_PURGE_INTERVAL (60*60*24) /* 1 day */
@@ -102,6 +103,17 @@ int main(int argc, char *argv[]) {
 
 	struct cconf *config;
 	char configfile[4096];
+
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+			printf("%s [--help|-h|--version|-v]\n", argv[0]);
+		} else if (!strcmp(argv[1], "-v")
+			|| !strcmp(argv[1], "--version")) {
+			printf("dlight version %s\n",
+				dlight_version_str);
+		}
+		return 0;
+	}
 
 	snprintf(configfile, sizeof(configfile), "%s/%s",
 		env_get_dir(), "config");
