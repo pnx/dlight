@@ -1,5 +1,6 @@
 .*
 *.o
+VERSION_FILE
 dlight
 dlight-*
 config
