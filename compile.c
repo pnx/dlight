@@ -31,6 +31,7 @@
 #include "cconf.h"
 #include "lockfile.h"
 #include "filter.h"
+#include "version.h"
 
 #define isalias(x) (isalnum(x) || (x) == '-')
 
@@ -302,6 +303,18 @@ int main(int argc, char **argv) {
 	int lockfd, force = 0;
 	struct lockfile lock = LOCKFILE_INIT;
 	char filename[4096];
+
+	if (argc > 1) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+			printf("dlight compiler\n");
+			printf("%s [--help|-h|--version|-v]\n", argv[0]);
+		} else if (!strcmp(argv[1], "-v")
+			|| !strcmp(argv[1], "--version")) {
+			printf("Version: %s\n",
+				dlight_version_str);
+		}
+		return 0;
+	}
 
 	snprintf(filename, sizeof(filename), "%s/%s",
 		env_get_dir(), "config");

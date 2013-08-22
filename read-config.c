@@ -23,8 +23,10 @@
 #include "cconf.h"
 #include "env.h"
 #include "error.h"
+#include "version.h"
 
-static char *usagestr = "dlight-read-config [ <file> | -h ]";
+static char *usagestr =
+	"dlight-read-config [ --help | -h | --version | -v ] [ <file> ]";
 
 int main(int argc, char **argv) {
 
@@ -33,8 +35,13 @@ int main(int argc, char **argv) {
 	char file[4096];
 
 	if (argc > 1) {
-		if (!strcmp(argv[1], "-h")) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
 			usage(usagestr);
+		} else if (!strcmp(argv[1], "-v")
+			|| !strcmp(argv[1], "--version")) {
+			printf("Version: %s\n",
+				dlight_version_str);
+			return 0;
 		}
 		strncpy(file, argv[1], sizeof(file));
 	} else {

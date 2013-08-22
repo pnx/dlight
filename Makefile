@@ -15,11 +15,11 @@ install : $(PROGRAMS)
 	cp $^ $(HOME)/bin/
 
 dlight : dlight.o buffer.o env.o http.o rss.o lockfile.o filter.o cconf.o \
-	proc-cache.o dlhist.o hash.o xalloc.o error.o utils.o
+	proc-cache.o dlhist.o hash.o xalloc.o error.o utils.o version.o
 dlight-compile : compile.o buffer.o env.o lockfile.o filter.o cconf.o \
-	error.o
-dlight-read-config : read-config.o buffer.o env.o cconf.o error.o
-dlight-filter-check: filter-check.o filter.o error.o
+	error.o version.o
+dlight-read-config : read-config.o buffer.o env.o cconf.o error.o version.o
+dlight-filter-check: filter-check.o filter.o error.o version.o
 
 dlight-% : %.o
 	$(CC) $(LDFLAGS) -o $@ $^
