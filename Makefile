@@ -1,4 +1,10 @@
 
+all::
+
+VERSION_FILE : FORCE
+	@$(SHELL) VERSION-GEN $@
+-include VERSION_FILE
+
 CC = gcc
 LDFLAGS = -lxml2 -lcurl -lpcre
 CFLAGS = -g -Wall -I/usr/include/libxml2
@@ -9,7 +15,7 @@ ifeq ($(DEBUG), 1)
 	CFLAGS +=-D__DEBUG__
 endif
 
-all : $(PROGRAMS)
+all:: $(PROGRAMS)
 
 install : $(PROGRAMS)
 	cp $^ $(HOME)/bin/
@@ -24,5 +30,14 @@ dlight-filter-check: filter-check.o filter.o error.o version.o
 dlight-% : %.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
+version.o : VERSION_FILE FORCE
+version.o : EXTRA_CFLAGS = -DDLIGHT_VERSION=\"$(VERSION)\"
+
+%.o : %.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+
 clean :
 	$(RM) *.o $(PROGRAMS)
+	$(RM) VERSION_FILE
+
+FORCE:
