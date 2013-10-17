@@ -300,7 +300,7 @@ static int parse_config_file(const char *file) {
 
 int main(int argc, char **argv) {
 
-	int lockfd, force = 0;
+	int lockfd;
 	struct lockfile lock = LOCKFILE_INIT;
 	char filename[4096];
 
@@ -319,11 +319,7 @@ int main(int argc, char **argv) {
 	snprintf(filename, sizeof(filename), "%s/%s",
 		env_get_dir(), "config");
 
-	/* Remove lockfile if forced */
-	if (argc > 1 && !strcmp(argv[1], "-f"))
-		force = 1;
-
-	lockfd = hold_lock(&lock, filename, force);
+	lockfd = hold_lock(&lock, filename);
 	if (lockfd < 0)
 		return 1;
 

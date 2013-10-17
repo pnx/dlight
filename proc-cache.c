@@ -163,7 +163,7 @@ int proc_cache_open() {
 		"%s/%s", env_get_dir(), STORAGE_FILE);
 
 	/* try lockin the file */
-	if (hold_lock(&lock, filename, 0) < 0)
+	if (hold_lock(&lock, filename) < 0)
 		goto error;
 
 	fd = open(filename, O_CREAT | O_RDONLY, 0600);

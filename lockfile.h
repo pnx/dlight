@@ -33,7 +33,7 @@ struct lockfile {
 
 #define is_locked(x) ((x)->fd >= 0)
 
-int hold_lock(struct lockfile *lock, const char *filename, int force);
+int hold_lock(struct lockfile *lock, const char *filename);
 
 int commit_lock(struct lockfile *lock);
 

@@ -109,12 +109,9 @@ static double get_lock_time(const char *path) {
 	return difftime(time(NULL), st.st_ctime);
 }
 
-static int open_lock(const char *path, int force) {
+static int open_lock(const char *path) {
 
 	int fd, mask = O_WRONLY | O_TRUNC | O_CREAT | O_EXCL;
-
-	if (force)
-		mask &= ~O_EXCL;
 
 	fd = open(path, mask, 0600);
 	if (fd < 0) {
@@ -130,7 +127,7 @@ static int open_lock(const char *path, int force) {
 	return fd;
 }
 
-int hold_lock(struct lockfile *lock, const char *filename, int force) {
+int hold_lock(struct lockfile *lock, const char *filename) {
 
 	int rc;
 
@@ -143,7 +140,7 @@ int hold_lock(struct lockfile *lock, const char *filename, int force) {
 	if (rc > sizeof(lock->name))
 		return -1;
 
-	lock->fd = open_lock(lock->name, force);
+	lock->fd = open_lock(lock->name);
 	if (lock->fd < 0) {
 		if (errno == EEXIST)
 			return error("'%s' is locked", filename);
