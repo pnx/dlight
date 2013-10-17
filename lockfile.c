@@ -22,6 +22,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
@@ -30,6 +31,11 @@
 #include <fcntl.h>
 #include "error.h"
 #include "lockfile.h"
+
+/* Maximum time a lockfile can be uhm.. locked (in seconds)
+   Used to prevent deadlocks when processes "forgets" to unlock. */
+
+#define MAX_LOCK_TIME (15 * 60) /* 15 min is fine. */
 
 static struct lockfile *active_locks;
 
@@ -94,28 +100,55 @@ static inline void init(void) {
 	is_init = 1;
 }
 
+static double get_lock_time(const char *path) {
+
+	struct stat st;
+
+	if (stat(path, &st) < 0)
+		return -1;
+	return difftime(time(NULL), st.st_ctime);
+}
+
+static int open_lock(const char *path, int force) {
+
+	int fd, mask = O_WRONLY | O_TRUNC | O_CREAT | O_EXCL;
+
+	if (force)
+		mask &= ~O_EXCL;
+
+	fd = open(path, mask, 0600);
+	if (fd < 0) {
+		/* Force open if lockfile exists
+		   and MAX_LOCK_TIME is exceeded */
+		if (errno == EEXIST
+			&& get_lock_time(path) > MAX_LOCK_TIME) {
+
+			mask &= ~O_EXCL;
+			return open(path, mask, 0600);
+		}
+	}
+	return fd;
+}
+
 int hold_lock(struct lockfile *lock, const char *filename, int force) {
 
-	int rc, mask = O_WRONLY | O_CREAT | O_TRUNC;
+	int rc;
 
 	init();
 
 	if (is_locked(lock))
 		return -1;
 
-	if (!force)
-		mask |= O_EXCL;
-
 	rc = snprintf(lock->name, sizeof(lock->name), "%s.lock", filename);
 	if (rc > sizeof(lock->name))
 		return -1;
 
-	lock->fd = open(lock->name, mask, 0600);
+	lock->fd = open_lock(lock->name, force);
 	if (lock->fd < 0) {
-		return error(errno == EEXIST ?
-			"'%s' is locked" : "unable to create lockfile '%s'",
-			lock->name);
+		return error(errno == EEXIST ? "'%s' is locked" :
+			"unable to create lockfile '%s'", lock->name);
 	}
+
 	lock->next = active_locks;
 	active_locks = lock;
 	return lock->fd;
