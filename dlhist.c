@@ -444,25 +444,16 @@ void dlhist_close() {
 	table_count = table_size = 0;
 }
 
-static const char hexmap[16] = {
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-};
 
-static const char* sha1_to_hex(const unsigned char *sha1) {
+static char* strtime(time_t *time) {
 
-	int i;
-	static char hex[41];
-	char *h = hex;
+	static char buf[64];
 
-	for(i=0; i < 20; i++) {
-		unsigned char v = *sha1++;
-		*h++ = hexmap[v >> 4];
-		*h++ = hexmap[v & 15];
-	}
-	return hex;
+	struct tm *tm = gmtime(time);
+	if (strftime(buf, sizeof(buf), "%F %T", tm) < 1)
+		buf[0] = '\0';
+	return buf;
 }
-
 
 void dlhist_print() {
 
@@ -474,12 +465,14 @@ void dlhist_print() {
 		if (he_empty(entry))
 			continue;
 
-		printf("%10u %40s\n", entry->key, sha1_to_hex(entry->key));
+		printf("%s\n", entry->key);
 
 		for(j=0; j < entry->dest_nr; j++) {
 			struct destination *dest = entry->dest + j;
 
-			printf("\t%10u %s\n", dest->time, dest->path);
+			printf("\t%s | %s\n",
+				strtime((time_t*) &dest->time), dest->path);
 		}
+		printf("\n");
 	}
 }
