@@ -40,7 +40,10 @@ version.o : EXTRA_CFLAGS = -DDLIGHT_VERSION=\"$(VERSION)\"
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
 clean :
-	$(RM) *.o $(PROGRAMS)
+	$(RM) *.o
 	$(RM) VERSION_FILE
+
+distclean : clean
+	$(RM) $(PROGRAMS)
 
 FORCE:
