@@ -91,18 +91,6 @@ static void sig_remove_from_list(int signo) {
 	raise(signo);
 }
 
-static inline void init(void) {
-
-	static int is_init = 0;
-
-	if (is_init)
-		return;
-
-	register_signal_handl(sig_remove_from_list);
-	atexit(release_all_locks);
-	is_init = 1;
-}
-
 static double get_lock_time(const char *path) {
 
 	struct stat st;
@@ -134,8 +122,6 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 
 	int rc;
 
-	init();
-
 	if (is_locked(lock))
 		return -1;
 
@@ -153,6 +139,14 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 
 	/* Add the lock to the list if needed. */
 	if (!(lock->flags & LOCK_ON_LIST)) {
+
+		/* If the lock list is empty.
+		   Need to register signal handler and atexit. */
+		if (!active_locks) {
+			register_signal_handl(sig_remove_from_list);
+			atexit(release_all_locks);
+		}
+
 		lock->next = active_locks;
 		active_locks = lock;
 		lock->flags |= LOCK_ON_LIST;
