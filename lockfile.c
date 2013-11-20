@@ -120,13 +120,11 @@ start:	fd = open(path, O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
 
 int hold_lock(struct lockfile *lock, const char *filename) {
 
-	int rc;
-
 	if (is_locked(lock))
 		return -1;
 
-	rc = snprintf(lock->name, sizeof(lock->name), "%s.lock", filename);
-	if (rc > sizeof(lock->name))
+	if (snprintf(lock->name, sizeof(lock->name),
+		"%s.lock", filename) > sizeof(lock->name))
 		return -1;
 
 	lock->fd = open_lock(lock->name);
