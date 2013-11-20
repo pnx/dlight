@@ -131,6 +131,8 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 
 	lock->fd = open_lock(lock->name);
 	if (lock->fd < 0) {
+		lock->name[0] = '\0';
+
 		if (errno == EEXIST)
 			return error("'%s' is locked", filename);
 
