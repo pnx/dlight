@@ -102,18 +102,18 @@ static double get_lock_time(const char *path) {
 
 static int open_lock(const char *path) {
 
-	int fd, mask = O_WRONLY | O_TRUNC | O_CREAT | O_EXCL;
+	int fd, tried_force = 0;
 
-	fd = open(path, mask, 0600);
-	if (fd < 0) {
+start:	fd = open(path, O_WRONLY | O_TRUNC | O_CREAT | O_EXCL, 0600);
+	if (fd < 0 && !tried_force && errno == EEXIST
+		&& get_lock_time(path) > MAX_LOCK_TIME) {
+
 		/* Force open if lockfile exists
-		   and MAX_LOCK_TIME is exceeded */
-		if (errno == EEXIST
-			&& get_lock_time(path) > MAX_LOCK_TIME) {
+		and MAX_LOCK_TIME is exceeded */
 
-			mask &= ~O_EXCL;
-			return open(path, mask, 0600);
-		}
+		tried_force = 1;
+		unlink(path);
+		goto start;
 	}
 	return fd;
 }
