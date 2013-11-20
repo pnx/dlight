@@ -26,10 +26,11 @@
 struct lockfile {
 	struct lockfile *next;
 	int fd;
+	unsigned char flags;
 	char name[4096];
 };
 
-#define LOCKFILE_INIT { 0, -1, { 0 } }
+#define LOCKFILE_INIT { 0, -1, 0, { 0 } }
 
 #define is_locked(x) ((x)->fd >= 0)
 

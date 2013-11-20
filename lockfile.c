@@ -32,6 +32,9 @@
 #include "error.h"
 #include "lockfile.h"
 
+/* Flags */
+#define LOCK_ON_LIST (1<<0)
+
 /* Maximum time a lockfile can be uhm.. locked (in seconds)
    Used to prevent deadlocks when processes "forgets" to unlock. */
 
@@ -148,8 +151,12 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 		return error("unable to create lockfile '%s'", lock->name);
 	}
 
-	lock->next = active_locks;
-	active_locks = lock;
+	/* Add the lock to the list if needed. */
+	if (!(lock->flags & LOCK_ON_LIST)) {
+		lock->next = active_locks;
+		active_locks = lock;
+		lock->flags |= LOCK_ON_LIST;
+	}
 	return lock->fd;
 }
 
@@ -168,7 +175,6 @@ int commit_lock(struct lockfile *lock) {
 
 	if (rename(lock->name, target))
 		return -1;
-	remove_from_list(lock);
 	lock->name[0] = '\0';
 	close(lock->fd);
 	lock->fd = -1;
@@ -183,7 +189,6 @@ int release_lock(struct lockfile *lock) {
 		return 0;
 	rc = unlink(lock->name);
 	if (rc == 0) {
-		remove_from_list(lock);
 		lock->name[0] = '\0';
 		close(lock->fd);
 		lock->fd = -1;
