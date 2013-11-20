@@ -159,10 +159,15 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 int commit_lock(struct lockfile *lock) {
 
 	char target[4096];
-	int len;
+	int len, fd;
 
 	if (!is_locked(lock))
 		return 0;
+
+	fd = lock->fd;
+	lock->fd = -1;
+	if (close(fd) < 0)
+		return -1;
 
 	len = strlen(lock->name) - 5; /* .lock */
 
@@ -172,8 +177,6 @@ int commit_lock(struct lockfile *lock) {
 	if (rename(lock->name, target))
 		return -1;
 	lock->name[0] = '\0';
-	close(lock->fd);
-	lock->fd = -1;
 	return 0;
 }
 
