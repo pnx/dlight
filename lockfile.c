@@ -182,15 +182,20 @@ int commit_lock(struct lockfile *lock) {
 
 int release_lock(struct lockfile *lock) {
 
-	int rc;
+	if (lock->name[0]) {
 
-	if (!is_locked(lock))
-		return 0;
-	rc = unlink(lock->name);
-	if (rc == 0) {
+		int rc;
+
+		if (lock->fd >= 0) {
+			rc = close(lock->fd);
+			lock->fd = -1;
+			if (rc < 0)
+				return -1;
+		}
+		rc = unlink(lock->name);
 		lock->name[0] = '\0';
-		close(lock->fd);
-		lock->fd = -1;
+		if (rc < 0)
+			return -1;
 	}
-	return rc;
+	return 0;
 }
