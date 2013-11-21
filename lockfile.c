@@ -32,9 +32,6 @@
 #include "error.h"
 #include "lockfile.h"
 
-/* Flags */
-#define LOCK_ON_LIST (1<<0)
-
 /* Maximum time a lockfile can be uhm.. locked (in seconds)
    Used to prevent deadlocks when processes "forgets" to unlock. */
 
@@ -69,7 +66,7 @@ static void remove_from_list(struct lockfile *lock) {
 				active_locks = it->next;
 			}
 
-			lock->flags &= ~LOCK_ON_LIST;
+			lock->flags &= ~__LOCK_ON_LIST;
 			lock->next = NULL;
 			break;
 		}
@@ -141,7 +138,7 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 	}
 
 	/* Add the lock to the list if needed. */
-	if (!(lock->flags & LOCK_ON_LIST)) {
+	if (!(lock->flags & __LOCK_ON_LIST)) {
 
 		/* If the lock list is empty.
 		   Need to register signal handler and atexit. */
@@ -152,7 +149,7 @@ int hold_lock(struct lockfile *lock, const char *filename) {
 
 		lock->next = active_locks;
 		active_locks = lock;
-		lock->flags |= LOCK_ON_LIST;
+		lock->flags |= __LOCK_ON_LIST;
 	}
 	return lock->fd;
 }

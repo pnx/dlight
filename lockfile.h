@@ -23,7 +23,9 @@
 #ifndef LOCKFILE_H
 #define LOCKFILE_H
 
-#define __LOCK_LOCAL_STORAGE (1<<1)
+ /* Flags */
+#define __LOCK_ON_LIST 		(1<<0)
+#define __LOCK_LOCAL_STORAGE 	(1<<1)
 
 struct lockfile {
 	struct lockfile *next;
