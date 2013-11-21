@@ -69,6 +69,7 @@ static void remove_from_list(struct lockfile *lock) {
 				active_locks = it->next;
 			}
 
+			lock->flags &= ~LOCK_ON_LIST;
 			lock->next = NULL;
 			break;
 		}
