@@ -58,20 +58,22 @@ static void release_all_locks() {
 
 static void remove_from_list(struct lockfile *lock) {
 
-	struct lockfile *it;
+	struct lockfile *it = active_locks, *prev = NULL;
 
-	if (active_locks == lock) {
-		active_locks = lock->next = NULL;
-		return;
-	}
+	while(it) {
 
-	for(it = active_locks; it; it = it->next) {
+		if (it == lock) {
+			if (prev) {
+				prev->next = it->next;
+			} else {
+				active_locks = it->next;
+			}
 
-		if (it->next != lock)
-			continue;
-
-		it->next = lock->next;
-		lock->next = NULL;
+			lock->next = NULL;
+			break;
+		}
+		prev = it;
+		it = it->next;
 	}
 }
 
