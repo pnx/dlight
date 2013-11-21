@@ -165,6 +165,9 @@ int commit_lock(struct lockfile *lock) {
 	if (!is_locked(lock))
 		return 0;
 
+	if (lock->flags & __LOCK_LOCAL_STORAGE)
+		remove_from_list(lock);
+
 	fd = lock->fd;
 	lock->fd = -1;
 	if (close(fd) < 0)
@@ -182,6 +185,9 @@ int commit_lock(struct lockfile *lock) {
 }
 
 int release_lock(struct lockfile *lock) {
+
+	if (lock->flags & __LOCK_LOCAL_STORAGE)
+		remove_from_list(lock);
 
 	if (lock->name[0]) {
 

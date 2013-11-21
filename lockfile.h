@@ -23,6 +23,8 @@
 #ifndef LOCKFILE_H
 #define LOCKFILE_H
 
+#define __LOCK_LOCAL_STORAGE (1<<1)
+
 struct lockfile {
 	struct lockfile *next;
 	int fd;
@@ -30,7 +32,8 @@ struct lockfile {
 	char name[4096];
 };
 
-#define LOCKFILE_INIT { 0, -1, 0, { 0 } }
+#define LOCKFILE_INIT 		{ 0, -1, 0, { 0 } }
+#define LOCKFILE_INIT_LOCAL 	{ 0, -1, __LOCK_LOCAL_STORAGE, { 0 } }
 
 #define is_locked(x) ((x)->fd >= 0)
 
