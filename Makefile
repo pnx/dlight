@@ -6,7 +6,7 @@ VERSION_FILE : FORCE
 -include VERSION_FILE
 
 CC = gcc
-LDFLAGS = -lxml2 -lcurl -lpcre
+LDFLAGS = -lxml2 -lcurl -lcrypto -lpcre
 CFLAGS = -g -Wall -I/usr/include/libxml2
 
 
