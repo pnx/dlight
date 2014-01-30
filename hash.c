@@ -83,7 +83,7 @@ static void* insert(struct hash_table *t, hash_t hash, void *ptr) {
 static unsigned needs_resize(const struct hash_table *t) {
 
 	if (t->size) {
-		double load = t->count / t->size;
+		double load = t->count / ((double) t->size);
 		return ((load >= 0.5 && load <= 0.75) == 0) &&
 			(t->size > TABLE_MIN_SIZE);
 	}
