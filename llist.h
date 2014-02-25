@@ -1,4 +1,4 @@
-/* list.h
+/* llist.h
  *
  *   Copyright (C) 2011   Henrik Hautakoski <henrik@fiktivkod.org>
  *
@@ -60,8 +60,6 @@ static inline void llist_del(struct llist *list, struct llist *entry) {
 		}
 	}
 }
-
-
 
 static inline int llist_empty(struct llist *list) {
 
