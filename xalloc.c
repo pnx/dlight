@@ -42,7 +42,8 @@ void* xmallocz(size_t size) {
 
 	ptr = malloc(size);
 	if (!ptr)
-		fatal("xmallocz: %s", strerror(errno));
+		fatal("xmallocz: %s, tried to allocate %lu bytes",
+			strerror(errno), (unsigned long) size);
 	memset(ptr, 0, size);
 	return ptr;
 }
