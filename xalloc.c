@@ -11,21 +11,22 @@
 #include <string.h>
 #include <errno.h>
 #include "error.h"
+#include "std_compat.h"
 #include "xalloc.h"
 
 #ifdef __DEBUG__
-# define CHECK_INPUT(s, prefix) \
-	if (!(s))		\
-		fatal(prefix ": Invalid argument '%s'\n", #s)
+# define CHECK_INPUT(s) \
+	if (!(s))	\
+		fatal("%s: Invalid argument '%s'\n", __FUNC__, #s)
 #else
-# define CHECK_INPUT(s, prefix)
+# define CHECK_INPUT(s)
 #endif
 
 void* xmalloc(size_t size) {
 
 	void *ptr;
 
-	CHECK_INPUT(size, "xmalloc");
+	CHECK_INPUT(size);
 
 	ptr = malloc(size);
 	if (!ptr)
@@ -38,7 +39,7 @@ void* xmallocz(size_t size) {
 
 	void *ptr;
 
-	CHECK_INPUT(size, "xmallocz");
+	CHECK_INPUT(size);
 
 	ptr = malloc(size);
 	if (!ptr)
@@ -51,7 +52,7 @@ void* xmallocz(size_t size) {
 void* xrealloc(void *ptr, size_t size) {
 
 	void *new;
-	CHECK_INPUT(size, "xrealloc");
+	CHECK_INPUT(size);
 
 	new = realloc(ptr, size);
 	if (!new)
@@ -65,7 +66,7 @@ char* xstrdup(const char *s) {
 	size_t len;
 	char *dest;
 
-	CHECK_INPUT(s, "xstrdup");
+	CHECK_INPUT(s);
 
 	len = strlen(s) + 1;
 	dest = xmalloc(len);
@@ -77,7 +78,7 @@ void* xmemdup(const void *src, size_t size) {
 
 	void *dest;
 
-	CHECK_INPUT(src, "xmemdup");
+	CHECK_INPUT(src);
 
 	dest = xmalloc(size);
 	memcpy(dest, src, size);
@@ -87,7 +88,7 @@ void* xmemdup(const void *src, size_t size) {
 #ifdef __DEBUG__
 void xfree(void *ptr) {
 
-	CHECK_INPUT(ptr, "xfree");
+	CHECK_INPUT(ptr);
 	free(ptr);
 }
 #endif /* __DEBUG__ */
