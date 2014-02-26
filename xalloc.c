@@ -22,16 +22,25 @@
 # define CHECK_INPUT(s)
 #endif
 
+
+static inline void* __alloc(size_t s, const char *func) {
+
+	void *p = malloc(s);
+	if (!p)
+		fatal("%s: %s, tried to allocate %lu bytes",
+			func, strerror(errno), (unsigned long) (s));
+	return p;
+}
+
+#define alloc(size) __alloc(size, __FUNC__)
+
+
 void* xmalloc(size_t size) {
 
 	void *ptr;
 
 	CHECK_INPUT(size);
-
-	ptr = malloc(size);
-	if (!ptr)
-		fatal("xmalloc: %s, tried to allocate %lu bytes",
-			strerror(errno), (unsigned long) size);
+	ptr = alloc(size);
 	return ptr;
 }
 
@@ -41,10 +50,7 @@ void* xmallocz(size_t size) {
 
 	CHECK_INPUT(size);
 
-	ptr = malloc(size);
-	if (!ptr)
-		fatal("xmallocz: %s, tried to allocate %lu bytes",
-			strerror(errno), (unsigned long) size);
+	ptr = alloc(size);
 	memset(ptr, 0, size);
 	return ptr;
 }
@@ -69,7 +75,7 @@ char* xstrdup(const char *s) {
 	CHECK_INPUT(s);
 
 	len = strlen(s) + 1;
-	dest = xmalloc(len);
+	dest = alloc(len);
 	memcpy(dest, s, len);
 	return dest;
 }
@@ -80,7 +86,7 @@ void* xmemdup(const void *src, size_t size) {
 
 	CHECK_INPUT(src);
 
-	dest = xmalloc(size);
+	dest = alloc(size);
 	memcpy(dest, src, size);
 	return dest;
 }
