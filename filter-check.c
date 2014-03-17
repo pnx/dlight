@@ -33,8 +33,7 @@ int main(int argc, char **argv) {
 			usage(usagestr);
 		} else if (!strcmp(argv[1], "-v")
 			|| !strcmp(argv[1], "--version")) {
-			printf("Version: %s\n",
-				dlight_version_str);
+			printf("%s\n", dlight_version_str);
 			return 0;
 		}
 	} else if (argc < 3) {

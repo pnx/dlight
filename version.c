@@ -29,4 +29,4 @@
 #define DLIGHT_VERSION "Unknown"
 #endif /* DLIGHT_VERSION */
 
-char const dlight_version_str[] = DLIGHT_VERSION;
+char const dlight_version_str[] = "dlight: " DLIGHT_VERSION;
