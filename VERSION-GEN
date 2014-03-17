@@ -1,10 +1,20 @@
 #!/bin/sh
 
-VERSION=$(git describe --always --tags --match "v[0-9]*" HEAD 2>/dev/null)
+# v[0-9]*\-p<patch number>-h
 
-if [ -n "$(git status --porcelain)" ]; then
-    VERSION="${VERSION}-dirty"
+VERSION=$(git describe --tags --match "v[0-9]*" HEAD 2>/dev/null \
+	| sed 's/\-\(.*\)\-g\(.*\)/-p\1\\\ \\(g-\2/' 2>/dev/null)
+
+if [ "x${VERSION}" == "x" ]; then
+	VERSION="unknown"
+else
+	if [ -n "$(git status --porcelain)" ]; then
+		VERSION="${VERSION}-dirty"
+	fi
+
+	VERSION="${VERSION}\\)"
 fi
+
 
 if [ -f "${1}" ]; then
     OLD=$(cat ${1} | sed 's/VERSION = //')
@@ -13,6 +23,5 @@ else
 fi
 
 if [ "${VERSION}" != "${OLD}" ]; then
-    #echo >&2 "VERSION = ${VERSION}"
     echo "VERSION = ${VERSION}" > ${1}
 fi
