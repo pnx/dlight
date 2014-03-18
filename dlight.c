@@ -26,9 +26,9 @@ static int write_http_file(struct http_file *file, const char *dest) {
 	return buffer_write(&file->data, path);
 }
 
-static void process_rss_item(struct rss_item *item, struct target *t) {
+static int process_rss_item(struct rss_item *item, struct target *t) {
 
-	int i;
+	int i, ret = 0;
 	struct http_file *file = NULL;
 
 	for(i=0; i < t->nr; i++) {
@@ -41,8 +41,12 @@ static void process_rss_item(struct rss_item *item, struct target *t) {
 		/* fetch the file if we haven't already. */
 		if (file == NULL) {
 			file = http_fetch_file(item->link);
+
+			/* If we can't fetch the file, set error return code
+			   and continue with next filter. */
 			if (file == NULL) {
 				error("download failed");
+				ret = -1;
 				continue;
 			}
 		}
@@ -59,6 +63,8 @@ static void process_rss_item(struct rss_item *item, struct target *t) {
 	}
 
 	http_free_file(file);
+
+	return ret;
 }
 
 static void process_rss_file(rss_t rss, struct target *t) {
@@ -70,7 +76,9 @@ static void process_rss_file(rss_t rss, struct target *t) {
 		if (proc_cache_lookup(item.link))
 			continue;
 
-		process_rss_item(&item, t);
+		/* If something went wrong, do not update proc cache */
+		if (process_rss_item(&item, t) < 0)
+			continue;
 
 		proc_cache_update(item.link);
 	}
