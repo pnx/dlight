@@ -26,48 +26,53 @@ static int write_http_file(struct http_file *file, const char *dest) {
 	return buffer_write(&file->data, path);
 }
 
-static void process_items(rss_t rss, struct target *t) {
+static void process_rss_item(struct rss_item *item, struct target *t) {
 
 	int i;
+	struct http_file *file = NULL;
+
+	for(i=0; i < t->nr; i++) {
+		struct filter *filter = &t->filter[i];
+
+		if (dlhist_lookup(item->title, filter->dest) ||
+			!filter_match(filter->pattern, item->title))
+			continue;
+
+		/* fetch the file if we haven't already. */
+		if (file == NULL) {
+			file = http_fetch_file(item->link);
+			if (file == NULL) {
+				error("download failed");
+				continue;
+			}
+		}
+
+		/* At this point, mark the item as downloaded.
+		   Even if we encounter an error while saving to disk. */
+		dlhist_mark(item->title, filter->dest);
+
+		if (write_http_file(file, filter->dest) < 0)
+			continue;
+
+		printf("Downloaded: %s (%s) to %s\n",
+			item->title, item->link, filter->dest);
+	}
+
+	http_free_file(file);
+}
+
+static void process_rss_file(rss_t rss, struct target *t) {
+
 	struct rss_item item;
 
 	while(rss_walk_next(rss, &item)) {
 
-		struct http_file *file = NULL;
-
 		if (proc_cache_lookup(item.link))
 			continue;
 
-		for(i=0; i < t->nr; i++) {
-			struct filter *filter = &t->filter[i];
-
-			if (dlhist_lookup(item.title, filter->dest) ||
-				!filter_match(filter->pattern, item.title))
-				continue;
-
-			/* fetch the file if we haven't already. */
-			if (file == NULL) {
-				file = http_fetch_file(item.link);
-				if (file == NULL) {
-					error("download failed");
-					continue;
-				}
-			}
-
-			/* At this point, mark the item as downloaded.
-			   Even if we encounter an error while saving to disk. */
-			dlhist_mark(item.title, filter->dest);
-
-			if (write_http_file(file, filter->dest) < 0)
-				continue;
-
-			printf("Downloaded: %s (%s) to %s\n",
-				item.title, item.link, filter->dest);
-		}
+		process_rss_item(&item, t);
 
 		proc_cache_update(item.link);
-
-		http_free_file(file);
 	}
 }
 
@@ -93,7 +98,7 @@ static void process(struct cconf *config) {
 			continue;
 		}
 
-		process_items(rss, t);
+		process_rss_file(rss, t);
 		rss_free(rss);
 		http_free(data);
 	}
