@@ -1,0 +1,19 @@
+
+# Simple imput test.
+
+# Comment
+
+[]
+<-
+<
+# ASSIGN SEPARATOR ASSIGN
+=,= # Comment after
+	# tab
+
+# Variable types.
+231723
+-1337
+
+true # bool
+
+id = string

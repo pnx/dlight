@@ -1,0 +1,18 @@
+
+myint = 25
+
+nodownload = /home/pnx/dump/
+download  = /home/pnx/torrents/
+
+'https://scenehd.org/rss.php?cat=1;4;8;13;9;5;7&passkey=fa8eca94b73a61a521754979611a772b' download
+#	.* nodownload
+#	.* nodownload
+#	'^The.Big.Bang.Theory.S[0-9]{2}E[0-9]{2}.*720p'
+#	^How.I.Met.Your.Mother.S[0-9]{2}E[0-9]{2}.*720p
+
+http://www.thegft.org/rss.php?cats\=17&type\=dl&passkey\=a8b73d50abfb31aa17554901677f1191  download
+	.* nodownload
+	^The.Code.S[0-9]{2}E[0-9]{2}.720p
+	^Friends.Whit.Benefits.S[0-9]{2}E[0-9]{2}.720p
+
+string1 \= string2
