@@ -84,6 +84,21 @@ static void hash(union hash *h, const char *s) {
 	SHA1((unsigned char *)s, n, h->sha1);
 }
 
+static struct proc_cache_entry* find_in_list(struct proc_cache_entry *ent, 
+					union hash *hash) {
+
+	struct llist *it;
+	struct proc_cache_entry *e;
+
+	llist_foreach(it, &ent->list) {
+		e = llist_entry(it, struct proc_cache_entry, list);
+
+		if (!he_empty(e) && !memcmp(e->hash.sha1, hash->sha1, 20))
+			return e;
+	}
+	return NULL;
+}
+
 static struct proc_cache_entry* lookup(const char *key) {
 
 	struct proc_cache_entry *entry;
@@ -93,15 +108,7 @@ static struct proc_cache_entry* lookup(const char *key) {
 
 	entry = hash_lookup(&table, h.index);
 	if (entry) {
-		struct llist *it;
-		struct proc_cache_entry *e;
-
-		llist_foreach(it, &entry->list) {
-			e = llist_entry(it, struct proc_cache_entry, list);
-
-			if (!he_empty(e) && !memcmp(e->hash.sha1, h.sha1, 20))
-				return e;
-		}
+		return find_in_list(entry, &h);
 	}
 	return NULL;
 }
@@ -112,17 +119,9 @@ static void he_insert(struct proc_cache_entry *entry) {
 
 	dest = hash_insert(&table, entry->hash.index, entry);
 	if (dest) {
-		struct llist *it;
-		struct proc_cache_entry *e;
-
-		llist_foreach(it, &dest->list) {
-			e = llist_entry(it, struct proc_cache_entry, list);
-
-			if (!he_empty(e) &&
-				!memcmp(e->hash.sha1, entry->hash.sha1, 20)) {
-				free(entry);
-				return;
-			}
+		if (find_in_list(dest, &entry->hash)) {
+			free(entry);
+			return;
 		}
 		llist_add(&dest->list, &entry->list);
 	}
