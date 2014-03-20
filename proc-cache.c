@@ -96,7 +96,7 @@ static struct proc_cache_entry* lookup(const char *key) {
 		struct llist *it;
 		struct proc_cache_entry *e;
 
-		llist_foreach(it, entry->list.next) {
+		llist_foreach(it, &entry->list) {
 			e = llist_entry(it, struct proc_cache_entry, list);
 
 			if (!he_empty(e) && !memcmp(e->hash.sha1, h.sha1, 20))
