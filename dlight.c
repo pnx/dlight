@@ -34,8 +34,7 @@ static int process_rss_item(struct rss_item *item, struct target *t) {
 	for(i=0; i < t->nr; i++) {
 		struct filter *filter = &t->filter[i];
 
-		if (dlhist_lookup(item->title, filter->dest) ||
-			!filter_match(filter->pattern, item->title))
+		if (!filter_match(filter->pattern, item->title))
 			continue;
 
 		/* fetch the file if we haven't already. */
@@ -51,8 +50,7 @@ static int process_rss_item(struct rss_item *item, struct target *t) {
 			}
 		}
 
-		/* At this point, mark the item as downloaded.
-		   Even if we encounter an error while saving to disk. */
+		/* Save to history */
 		dlhist_mark(item->title, filter->dest);
 
 		if (write_http_file(file, filter->dest) < 0)
