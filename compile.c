@@ -325,9 +325,10 @@ int main(int argc, char **argv) {
 	if (parse_config_file("./config") < 0)
 		goto error;
 
-	if (!cconf_write(lockfd, &cconf) &&
-		!commit_lock(&lock))
+	if (!cconf_write(lockfd, &cconf) && !commit_lock(&lock)) {
+		printf("Compilation complete.\n");
 		return 0;
+	}
 error:
 	release_lock(&lock);
 	return 1;
