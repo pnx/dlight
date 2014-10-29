@@ -5,7 +5,7 @@
 VERSION=$(git describe --tags --match "v[0-9]*" HEAD 2>/dev/null \
 	| sed 's/\-\(.*\)\-g\(.*\)/-p\1\\\ \\(g-\2/' 2>/dev/null)
 
-if [ "x${VERSION}" == "x" ]; then
+if [ "x${VERSION}" = "x" ]; then
 	VERSION="unknown"
 else
 	if [ -n "$(git status --porcelain)" ]; then
