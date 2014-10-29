@@ -6,7 +6,9 @@ VERSION_FILE : FORCE
 -include VERSION_FILE
 
 CC = gcc
-LDFLAGS = -lxml2 -lcurl -lcrypto -lpcre
+LD = $(CC)
+LDFLAGS =
+LDLIBS = -lxml2 -lcurl -lcrypto -lpcre
 CFLAGS = -g -Wall -I/usr/include/libxml2
 
 
@@ -28,10 +30,11 @@ dlight-compile : compile.o buffer.o env.o lockfile.o filter.o cconf.o \
 	error.o version.o
 dlight-read-config : read-config.o buffer.o env.o cconf.o error.o version.o
 dlight-filter-check: filter-check.o filter.o error.o version.o
-dlight-dlhist-read : dlhist-read.o buffer.o utils.o env.o error.o lockfile.o dlhist.o
+dlight-dlhist-read : dlhist-read.o buffer.o utils.o env.o error.o \
+	lockfile.o dlhist.o
 
 dlight-% : %.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(LD) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 version.o : VERSION_FILE FORCE
 version.o : EXTRA_CFLAGS = -DDLIGHT_VERSION=\"$(VERSION)\"
