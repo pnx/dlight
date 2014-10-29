@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 	char configfile[4096];
 
 	if (argc > 1) {
-		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) {
 			printf("%s [--help|-h|--version|-v]\n", argv[0]);
 		} else if (!strcmp(argv[1], "-v")
 			|| !strcmp(argv[1], "--version")) {
