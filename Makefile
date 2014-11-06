@@ -7,9 +7,9 @@ VERSION_FILE : FORCE
 
 CC = gcc
 LD = $(CC)
+CFLAGS =
 LDFLAGS =
 LDLIBS = -lxml2 -lcurl -lcrypto -lpcre
-CFLAGS = -g -Wall
 
 PROGRAMS = dlight
 
@@ -21,7 +21,9 @@ CMD = cmd_compile.o		\
 	cmd_version.o
 
 ifeq ($(DEBUG), 1)
-	CFLAGS +=-D__DEBUG__
+	CFLAGS += -g -Wall -D__DEBUG__
+else
+	CFLAGS +=-Werror
 endif
 
 all:: $(PROGRAMS)
