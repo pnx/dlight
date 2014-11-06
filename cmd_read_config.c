@@ -1,4 +1,4 @@
-/* filter-check.c
+/* cmd_read_config.c
  *
  *   Copyright (C) 2011       Henrik Hautakoski <henrik@fiktivkod.org>
  *
@@ -18,35 +18,55 @@
  *   MA 02110-1301, USA.
  */
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "cconf.h"
+#include "env.h"
 #include "error.h"
-#include "filter.h"
 #include "version.h"
 
-const char *usagestr =
-	"dlight-filter-check [ --help | -h | --version | -v ] "
-	"| [ <pattern> <subject> ]";
+static char *usagestr =
+	"dlight read-config [--help|-h] [<file>]";
 
-int main(int argc, char **argv) {
+int cmd_read_config(int argc, char **argv) {
 
-	if (argc > 1) {
-		if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+	int i;
+	struct cconf *c;
+	char file[4096];
+
+	if (argc > 0) {
+		if (!strcmp(argv[0], "-h") || !strcmp(argv[0], "--help")) {
 			usage(usagestr);
-		} else if (!strcmp(argv[1], "-v")
-			|| !strcmp(argv[1], "--version")) {
-			printf("%s\n", dlight_version_str);
-			return 0;
 		}
-	} else if (argc < 3) {
-		usage(usagestr);
-	}
-
-	if (!filter_check_syntax(argv[1]))
-		return 0;
-
-	if (filter_match(argv[1], argv[2])) {
-		puts("match");
+		strncpy(file, argv[0], sizeof(file));
 	} else {
-		puts("nomatch");
+		snprintf(file, sizeof(file), "%s/config", env_get_dir());
 	}
+
+	c = cconf_read(file);
+	if (!c) {
+		perror(file);
+		return 1;
+	}
+
+	printf("--- Config file: %s ---\n", file);
+	for(i=0; i < c->nr; i++) {
+		int j;
+		struct target *t = c->target + i;
+
+		printf("src: %s\n", t->src);
+
+		for(j=0; j < t->nr; j++)
+			printf("filter:\n"
+				"\tpattern: %s\n"
+				"\tdestination: %s\n",
+				t->filter[j].pattern, t->filter[j].dest);
+
+		printf("---\n");
+	}
+
+	cconf_free(c);
+	free(c);
+
 	return 0;
 }

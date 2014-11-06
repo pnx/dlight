@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "dlhist.h"
 
-int main() {
+int cmd_dlhist(int argc, char **argv) {
 
 	if (dlhist_open() < 0)
 		return 1;
