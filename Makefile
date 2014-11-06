@@ -9,7 +9,7 @@ CC = gcc
 LD = $(CC)
 LDFLAGS =
 LDLIBS = -lxml2 -lcurl -lcrypto -lpcre
-CFLAGS = -g -Wall -I/usr/include/libxml2
+CFLAGS = -g -Wall
 
 PROGRAMS = dlight
 
@@ -35,6 +35,8 @@ dlight : dlight.o $(CMD) buffer.o env.o http.o rss.o lockfile.o filter.o cconf.o
 
 version.o : VERSION_FILE FORCE
 version.o : EXTRA_CFLAGS = -DDLIGHT_VERSION=\"$(VERSION)\"
+
+rss.o : EXTRA_CFLAGS = -I/usr/include/libxml2
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
